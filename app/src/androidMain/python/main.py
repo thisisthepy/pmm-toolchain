@@ -6,6 +6,16 @@ from java import jclass
 import traceback
 
 
+import os
+import sys
+import zipfile
+print(os.environ["HOME"])
+print(os.path.abspath(os.path.dirname(__file__)))
+print(sys.platform)
+
+from llama_cpp import Llama
+
+
 @Composable
 def UiTestCase(text: str = "UiTestCase"):
     SimpleText(text)

@@ -33,6 +33,18 @@ kotlin {
 chaquopy {
     defaultConfig {
         version = libs.versions.python.get()
+
+        pip {
+            install("typing-extensions")
+            install("numpy")
+            install("diskcache")
+            install("jinja2")
+            install("MarkupSafe")
+            install("./libs/llama-cpp-python/arm64-v8a/llama_cpp_python-0.2.88-cp311-cp311-linux_aarch64.whl")
+            install("./libs/llama-cpp-python/x86_64/llama_cpp_python-0.2.88-cp311-cp311-linux_x86_64.whl")
+
+            install("huggingface_hub")
+        }
     }
     sourceSets {
         getByName("main") {

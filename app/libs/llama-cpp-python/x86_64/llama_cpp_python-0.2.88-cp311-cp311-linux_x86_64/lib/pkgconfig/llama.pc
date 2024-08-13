@@ -1,0 +1,10 @@
+prefix=/data/data/com.termux/files/usr/tmp/tmpvy_sno8s/wheel/platlib
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: llama
+Description: Port of Facebook's LLaMA model in C/C++
+Version: 
+Libs: -L${libdir} -lllama
+Cflags: -I${includedir}
