@@ -35,14 +35,19 @@ chaquopy {
         version = libs.versions.python.get()
 
         pip {
+            // Use the local repository for the Python packages.
+            options("--extra-index-url", "libs/pip/local")
+
+            // Dependencies for the llama-cpp-python package.
             install("typing-extensions")
             install("numpy")
             install("diskcache")
             install("jinja2")
             install("MarkupSafe")
-            install("./libs/llama-cpp-python/arm64-v8a/llama_cpp_python-0.2.88-cp311-cp311-linux_aarch64.whl")
-            install("./libs/llama-cpp-python/x86_64/llama_cpp_python-0.2.88-cp311-cp311-linux_x86_64.whl")
+            install("llama-cpp-python")
 
+            // Dependencies for the huggingface_hub package.
+            install("PyYAML")
             install("huggingface_hub")
         }
     }
@@ -69,7 +74,7 @@ android {
         versionCode = 1
         versionName = version.toString()
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a", "x86")
         }
     }
     packaging {
