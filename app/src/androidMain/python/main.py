@@ -9,20 +9,34 @@ import traceback
 import os
 import sys
 import zipfile
+import ctypes
 print(os.environ["HOME"])
 print(os.path.abspath(os.path.dirname(__file__)))
 print(sys.platform)
 
 import numpy  # Or any requirement other than llama_cpp
-numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libggml.so")
 numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libllama.so")
+numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libggml.so")
 numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libllava.so")
-numpy.__loader__.finder.extract_if_changed("lib/libggml.so")
 numpy.__loader__.finder.extract_if_changed("lib/libllama.so")
+numpy.__loader__.finder.extract_if_changed("lib/libggml.so")
 numpy.__loader__.finder.extract_if_changed("lib/libllava.so")
 
-from llama_cpp import Llama
+base_path = "/data/data/io.github.thisisthepy.pythonapptemplate/files/chaquopy/AssetFinder/requirements"
 
+ggml_path = os.path.join(f"{base_path}/lib", "libggml.so")
+llama_path = os.path.join(f"{base_path}/lib", "libllama.so")
+
+ctypes.CDLL(ggml_path)
+ctypes.CDLL(llama_path)
+
+# ggml_path = os.path.join(f"{base_path}/llama_cpp/lib", "libggml.so")
+# llama_path = os.path.join(f"{base_path}/llama_cpp/lib", "libllama.so")
+#
+# ctypes.CDLL(ggml_path)
+# ctypes.CDLL(llama_path)
+
+from llama_cpp import llama
 
 @Composable
 def UiTestCase(text: str = "UiTestCase"):
