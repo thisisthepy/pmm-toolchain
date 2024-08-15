@@ -49,6 +49,11 @@ chaquopy {
             // Dependencies for the huggingface_hub package.
             install("PyYAML")
             install("huggingface_hub")
+
+            // Dependencies for the jupyter package.
+            //install("pyzmq")
+            //install("jsonschema==2.6")
+            //install("jupyter")
         }
     }
     sourceSets {
