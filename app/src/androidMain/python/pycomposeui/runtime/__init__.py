@@ -209,6 +209,16 @@ try:
         return _rememberSaveable(value, _type, Composable.composer, 1)
 
 
+    class CoroutineScope(Composable):
+        def __init__(self):
+            super().__init__()
+            self._scope = _runtime.coroutineScopeWrapper(Composable.composer, 1)
+            self._launcher = _runtime_android.coroutineLauncherWrapper
+
+        def launch(self, block: callable):
+            self._launcher(self._scope, block)
+
+
 except Exception as e:
     print("-----------------------------------------------------------------------------------------------------------")
     traceback.print_exc()

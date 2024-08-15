@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.chaquo.python.PyObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 //
 ///*
@@ -39,5 +41,13 @@ fun rememberSaveableWrapper(init: PyObject, type: PyObject): MutableState<out An
         println("Warning: A value that cannot be converted to a primitive type is passed as a argument to the rememberSaveable function." +
                 "An exception may occur if CustomSaver is not specified... : Any - $init")
         rememberSaveable { mutableStateOf(init) }
+    }
+}
+
+
+@JvmName("coroutineLauncherWrapper")
+fun coroutineLauncherWrapper(scope: CoroutineScope, runner: PyObject) {
+    scope.launch {
+        runner.call()
     }
 }

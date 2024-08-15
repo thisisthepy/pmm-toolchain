@@ -1,42 +1,11 @@
-from pycomposeui.runtime import Composable, EmptyComposable, remember_saveable
+from pycomposeui.runtime import Composable, EmptyComposable, remember_saveable, CoroutineScope
 from pycomposeui.material3 import SimpleText, SimpleColumn, SimpleRow, SimpleButton
 from pycomposeui.ui import modifier, Alignment
 
+from llm.llama import get_llama3, token_stream
+
 from java import jclass
-import traceback
 
-
-import os
-import sys
-import zipfile
-import ctypes
-print(os.environ["HOME"])
-print(os.path.abspath(os.path.dirname(__file__)))
-print(sys.platform)
-
-import numpy  # Or any requirement other than llama_cpp
-numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libllama.so")
-numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libggml.so")
-numpy.__loader__.finder.extract_if_changed("llama_cpp/lib/libllava.so")
-numpy.__loader__.finder.extract_if_changed("lib/libllama.so")
-numpy.__loader__.finder.extract_if_changed("lib/libggml.so")
-numpy.__loader__.finder.extract_if_changed("lib/libllava.so")
-
-base_path = "/data/data/io.github.thisisthepy.pythonapptemplate/files/chaquopy/AssetFinder/requirements"
-
-ggml_path = os.path.join(f"{base_path}/lib", "libggml.so")
-llama_path = os.path.join(f"{base_path}/lib", "libllama.so")
-
-ctypes.CDLL(ggml_path)
-ctypes.CDLL(llama_path)
-
-# ggml_path = os.path.join(f"{base_path}/llama_cpp/lib", "libggml.so")
-# llama_path = os.path.join(f"{base_path}/llama_cpp/lib", "libllama.so")
-#
-# ctypes.CDLL(ggml_path)
-# ctypes.CDLL(llama_path)
-
-from llama_cpp import llama
 
 @Composable
 def UiTestCase(text: str = "UiTestCase"):
@@ -77,29 +46,72 @@ class RichText(Composable):
 class App(Composable):
     @staticmethod
     def compose():
-        hi = remember_saveable("Hi?")
+        messages = remember_saveable("")
+        status = remember_saveable("")
         count = remember_saveable(0)
 
+        scope = CoroutineScope()
+
+        system_prompt = "You are a helpful, smart, kind, and efficient AI Assistant. You always fulfill the user's requests to the best of your ability. You need to keep listen to the conversations. Please answer in Korean language."
+        user_prompt = remember_saveable("안녕하세요!")
+
+        def change_prompt(prompt: str):
+            user_prompt.setValue(prompt)
+
+        llama3 = None
+
+        def init_llama3():
+            nonlocal llama3
+            llama3 = get_llama3()
+
+        def print_state(text: str):
+            status.setValue(status.getValue() + " " + text)
+
+        def print_messages(text: str):
+            messages.setValue(messages.getValue() + " " + text)
+
+        def get_recommendation(printer: callable = lambda x: print(x, end="", flush=True)):
+            runner_scope = CoroutineScope()
+
+            def runner():
+                for chunk in llama3(system_prompt, user_prompt.getValue()):
+                    chunk = token_stream(chunk)
+                    print(chunk)
+                    runner_scope.launch(lambda: printer(chunk))
+
+            scope.launch(runner)
+
         SimpleColumn(modifier, content=lambda: {
-            UiTest(),
-            RichText(),
-            SimpleText(hi.getValue()),
+            #UiTest(),
+            #RichText(),
+            SimpleText(messages.getValue()),
+            SimpleText(user_prompt.getValue()),
+            SimpleText(status.getValue()),
             SimpleButton(
                 onclick=lambda: {
-                    print("Button1 clicked!!!!!!!"),
-                    hi.setValue(hi.getValue() + " Hi?")
+                    init_llama3(),
+                    print_state("Llama3 Initialized")
                 },
                 content=lambda: {
-                    SimpleText("Button 1")
+                    SimpleText("Init Llama3")
                 }
             ),
             SimpleButton(
                 onclick=lambda: {
-                    print("Button2 clicked!!!!!!!"),
-                    count.setValue(count.getValue() + 1)
+                    print_state("Getting Recommendation"),
+                    get_recommendation(print_messages),
+                    print_state("Coroutine Registration Finished.")
                 },
                 content=lambda: {
-                    SimpleText(f"Button 2: Clicked {count.getValue()}")
+                    SimpleText(f"Send User Prompt")
+                }
+            ),
+            SimpleButton(
+                onclick=lambda: {
+                    change_prompt("오늘 날씨는 어때요?")
+                },
+                content=lambda: {
+                    SimpleText(f"Change Prompt")
                 }
             )
         })

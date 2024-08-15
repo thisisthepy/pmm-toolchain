@@ -1,6 +1,8 @@
 package io.github.thisisthepy.pycomposeui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
 import kotlin.jvm.JvmName
 
 
@@ -11,4 +13,10 @@ import kotlin.jvm.JvmName
 @Composable
 fun composableWrapper(content: @Composable (args: Array<Any>) -> Any, args: Array<Any>): Any {
     return content(args)
+}
+
+@JvmName("coroutineScopeWrapper")
+@Composable
+fun coroutineScopeWrapper(): CoroutineScope {
+    return rememberCoroutineScope()
 }
