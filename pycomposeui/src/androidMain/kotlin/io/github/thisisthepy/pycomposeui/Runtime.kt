@@ -3,7 +3,7 @@ package io.github.thisisthepy.pycomposeui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CoroutineScope
-import kotlin.jvm.JvmName
+import kotlinx.coroutines.Dispatchers
 
 
 /*
@@ -15,8 +15,32 @@ fun composableWrapper(content: @Composable (args: Array<Any>) -> Any, args: Arra
     return content(args)
 }
 
-@JvmName("coroutineScopeWrapper")
+@JvmName("rememberCoroutineScopeWrapper")
 @Composable
-fun coroutineScopeWrapper(): CoroutineScope {
+fun rememberCoroutineScopeWrapper(): CoroutineScope {
     return rememberCoroutineScope()
+}
+
+@JvmName("defaultCoroutineScopeWrapper")
+@Composable
+fun defaultCoroutineScopeWrapper(): CoroutineScope {
+    return CoroutineScope(Dispatchers.Default)
+}
+
+@JvmName("mainCoroutineScopeWrapper")
+@Composable
+fun mainCoroutineScopeWrapper(): CoroutineScope {
+    return CoroutineScope(Dispatchers.Main)
+}
+
+@JvmName("ioCoroutineScopeWrapper")
+@Composable
+fun ioCoroutineScopeWrapper(): CoroutineScope {
+    return CoroutineScope(Dispatchers.IO)
+}
+
+@JvmName("uncondifiedCoroutineScopeWrapper")
+@Composable
+fun uncondifiedCoroutineScopeWrapper(): CoroutineScope {
+    return CoroutineScope(Dispatchers.Unconfined)
 }

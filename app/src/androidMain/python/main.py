@@ -1,10 +1,11 @@
-from pycomposeui.runtime import Composable, EmptyComposable, remember_saveable, CoroutineScope
+from pycomposeui.runtime import Composable, EmptyComposable, remember_saveable
+from pycomposeui.runtime import DefaultCoroutineScope, MainCoroutineScope
 from pycomposeui.material3 import SimpleText, SimpleColumn, SimpleRow, SimpleButton
 from pycomposeui.ui import modifier, Alignment
 
 from llm.llama import get_llama3, token_stream
 
-from java import jclass
+from java import jclass, detach
 
 
 @Composable
@@ -50,7 +51,8 @@ class App(Composable):
         status = remember_saveable("")
         count = remember_saveable(0)
 
-        scope = CoroutineScope()
+        scope = DefaultCoroutineScope()
+        main_scope = MainCoroutineScope()
 
         system_prompt = "You are a helpful, smart, kind, and efficient AI Assistant. You always fulfill the user's requests to the best of your ability. You need to keep listen to the conversations. Please answer in Korean language."
         user_prompt = remember_saveable("안녕하세요!")
@@ -61,47 +63,50 @@ class App(Composable):
         llama3 = None
 
         def init_llama3():
-            nonlocal llama3
-            llama3 = get_llama3()
-
-        def print_state(text: str):
-            status.setValue(status.getValue() + " " + text)
-
-        def print_messages(text: str):
-            messages.setValue(messages.getValue() + " " + text)
-
-        def get_recommendation(printer: callable = lambda x: print(x, end="", flush=True)):
-            runner_scope = CoroutineScope()
-
             def runner():
-                for chunk in llama3(system_prompt, user_prompt.getValue()):
-                    chunk = token_stream(chunk)
-                    print(chunk)
-                    runner_scope.launch(lambda: printer(chunk))
+                nonlocal llama3
+                llama3 = get_llama3()
+                print_state("Llama3 Initialized")
 
             scope.launch(runner)
+
+        def print_state(text: str):
+            status.setValue(status.getValue() + "  " + text)
+
+        def print_messages(text: str):
+            messages.setValue(messages.getValue() + text)
+
+        def run_llama3(printer: callable = lambda x: print(x, end="", flush=True)):
+            system = system_prompt
+            user = user_prompt.getValue()
+
+            if llama3 is None:
+                print_state("Llama3 Not Initialized!!")
+            else:
+                print_state("Inference...")
+
+                def runner():
+                    for chunk in llama3(system, user):
+                        printer(token_stream(chunk))
+                    printer("\n")
+
+                scope.launch(runner)
 
         SimpleColumn(modifier, content=lambda: {
             #UiTest(),
             #RichText(),
+            SimpleText(f"Current User Prompt: {user_prompt.getValue()}"),
+            SimpleText(f"Log: {status.getValue()}"),
+            SimpleText(""),
             SimpleText(messages.getValue()),
-            SimpleText(user_prompt.getValue()),
-            SimpleText(status.getValue()),
             SimpleButton(
-                onclick=lambda: {
-                    init_llama3(),
-                    print_state("Llama3 Initialized")
-                },
+                onclick=init_llama3,
                 content=lambda: {
                     SimpleText("Init Llama3")
                 }
             ),
             SimpleButton(
-                onclick=lambda: {
-                    print_state("Getting Recommendation"),
-                    get_recommendation(print_messages),
-                    print_state("Coroutine Registration Finished.")
-                },
+                onclick=lambda: run_llama3(print_messages),
                 content=lambda: {
                     SimpleText(f"Send User Prompt")
                 }
