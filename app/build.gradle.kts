@@ -54,7 +54,7 @@ chaquopy {
             install("pyzmq")
             install("rpds-py")
             install("argon2-cffi-bindings")
-            install("jupyterlab")
+            install("jupyter")
         }
     }
     sourceSets {
