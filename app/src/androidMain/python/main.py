@@ -5,8 +5,6 @@ from pycomposeui.ui import modifier, Alignment
 
 from llm.llama import get_llama3, token_stream
 
-from java import jclass, detach
-
 
 @Composable
 def UiTestCase(text: str = "UiTestCase"):
@@ -65,8 +63,9 @@ class App(Composable):
         def init_llama3():
             def runner():
                 nonlocal llama3
+                print_state("Getting started...")
                 llama3 = get_llama3()
-                print_state("Llama3 Initialized")
+                print_state("Llama3 initialized")
 
             scope.launch(runner)
 
@@ -81,7 +80,7 @@ class App(Composable):
             user = user_prompt.getValue()
 
             if llama3 is None:
-                print_state("Llama3 Not Initialized!!")
+                print_state("Llama3 not initialized!!")
             else:
                 print_state("Inference...")
 
@@ -89,14 +88,23 @@ class App(Composable):
                     for chunk in llama3(system, user):
                         printer(token_stream(chunk))
                     printer("\n")
+                    print_state("Done!")
 
                 scope.launch(runner)
+
+        def run_jupyter():
+            #import sys
+            #sys.argv = ["jupyter-lab", "--ip=0.0.0.0", "--port=55555"]
+
+            from notebook.notebook import main as notebook_main
+
+            scope.launch(notebook_main)
 
         SimpleColumn(modifier, content=lambda: {
             #UiTest(),
             #RichText(),
-            SimpleText(f"Current User Prompt: {user_prompt.getValue()}"),
-            SimpleText(f"Log: {status.getValue()}"),
+            SimpleText(f"Current User Prompt:  {user_prompt.getValue()}"),
+            SimpleText(f"Log:{status.getValue()}"),
             SimpleText(""),
             SimpleText(messages.getValue()),
             SimpleButton(
@@ -106,7 +114,7 @@ class App(Composable):
                 }
             ),
             SimpleButton(
-                onclick=lambda: run_llama3(print_messages),
+                onclick=lambda: run_llama3(printer=print_messages),
                 content=lambda: {
                     SimpleText(f"Send User Prompt")
                 }
@@ -117,6 +125,12 @@ class App(Composable):
                 },
                 content=lambda: {
                     SimpleText(f"Change Prompt")
+                }
+            ),
+            SimpleButton(
+                onclick=run_jupyter,
+                content=lambda: {
+                    SimpleText(f"Run Jupyter")
                 }
             )
         })
