@@ -51,9 +51,12 @@ chaquopy {
             install("huggingface_hub")
 
             // Dependencies for the jupyter package.
-            //install("pyzmq")
-            //install("jsonschema==2.6")
-            //install("jupyter")
+            install("pyzmq")
+            install("rpds-py")
+            //install("jsonschema==3.0.1")
+            //install("notebook==6.4.13")
+            //install("jupyter_server==2.6.0")
+            install("jupyterlab")
         }
     }
     sourceSets {
