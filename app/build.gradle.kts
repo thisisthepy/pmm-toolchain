@@ -52,11 +52,8 @@ chaquopy {
 
             // Dependencies for the jupyter package.
             install("pyzmq")
-            install("argon2-cffi-bindings")
             install("rpds-py")
-            //install("jsonschema==3.0.1")
-            //install("notebook==6.4.13")
-            //install("jupyter_server==2.6.0")
+            install("argon2-cffi-bindings")
             install("jupyterlab")
         }
     }
