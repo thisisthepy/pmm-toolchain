@@ -6,6 +6,15 @@ from pycomposeui.ui import modifier, Alignment
 from llm.llama import get_llama3, token_stream
 
 
+import os
+import jupyter
+from jupyterlab.labapp import main as jupyterlab_main
+#from notebook.notebook import main as notebook_main
+jupyter.__loader__.finder.extract_if_changed(os.path.join("rpds", "rpds.cpython-311.so"))
+
+import rpds
+
+
 @Composable
 def UiTestCase(text: str = "UiTestCase"):
     SimpleText(text)
@@ -93,12 +102,10 @@ class App(Composable):
                 scope.launch(runner)
 
         def run_jupyter():
-            #import sys
-            #sys.argv = ["jupyter-lab", "--ip=0.0.0.0", "--port=55555"]
+            import sys
+            sys.argv = ["jupyter-lab", "--ip=0.0.0.0", "--port=55555"]
 
-            from notebook.notebook import main as notebook_main
-
-            scope.launch(notebook_main)
+            scope.launch(jupyterlab_main)
 
         SimpleColumn(modifier, content=lambda: {
             #UiTest(),
