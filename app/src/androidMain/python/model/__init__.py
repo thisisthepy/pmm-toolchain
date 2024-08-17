@@ -11,5 +11,3 @@ numpy.__loader__.finder.extract_if_changed(os.path.join("llama_cpp", "lib", "lib
 numpy.__loader__.finder.extract_if_changed(os.path.join("llama_cpp", "lib", "libllava.so"))
 
 ctypes.CDLL(os.path.join(llama_cpp_lib_path, "libggml.so"))
-
-from llama_cpp import *
