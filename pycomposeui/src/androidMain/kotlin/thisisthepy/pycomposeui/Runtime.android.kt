@@ -1,21 +1,38 @@
-package io.github.thisisthepy.pycomposeui
+package thisisthepy.pycomposeui
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.chaquo.python.PyObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.chaquo.python.PyObject
 
-//
-///*
-// * Description: Composable Template contains Python codes can be invoked by Kotlin functions
-// */
-//@JvmName("ComposableTemplate")
-//@Composable
-//fun ComposableTemplate(content: PyObject, vararg args: Any) {
-//    content.call(*args)
-//}
+
+/*
+ * Description: Composable Template contains Python codes can be invoked by Kotlin functions
+ */
+@JvmName("composableInvocationWrapper")
+@Composable
+fun composableInvocationWrapper(content: PyObject): @Composable () -> Unit {
+    return { content.call() }
+}
+
+@JvmName("composableInvocationWrapperWithParam")
+@Composable
+fun composableInvocationWrapperWithParam(content: PyObject): @Composable (List<Any>) -> Unit {
+    return { args -> content.call(*args.toTypedArray()) }
+}
+
+
+@JvmName("functionInvocationWrapper")
+fun functionInvocationWrapper(content: PyObject): () -> Any {
+    return { content.call() }
+}
+
+@JvmName("functionInvocationWrapperWithParam")
+fun functionInvocationWrapperWithParam(content: PyObject): (List<Any>) -> Any {
+    return { args -> content.call(*args.toTypedArray()) }
+}
 
 
 @SuppressLint("MutableCollectionMutableState")

@@ -1,4 +1,4 @@
-package io.github.thisisthepy.pycomposeui
+package thisisthepy.pycomposeui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 fun composableWrapper(content: @Composable (args: Array<Any>) -> Any, args: Array<Any>): Any {
     return content(args)
 }
+
 
 @JvmName("rememberCoroutineScopeWrapper")
 @Composable

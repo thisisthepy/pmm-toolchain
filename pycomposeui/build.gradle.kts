@@ -10,7 +10,7 @@ plugins {
 }
 
 
-group = "io.github.thisisthepy.pycomposeui"
+group = "thisisthepy"
 version = "0.0.0.1"
 
 
@@ -50,7 +50,7 @@ chaquopy {
 
 
 android {
-    namespace = group.toString()
+    namespace = "$group.pycomposeui"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

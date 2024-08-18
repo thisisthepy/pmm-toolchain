@@ -2,7 +2,10 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/python" />
+    <content url="file://$MODULE_DIR$/androidMain/generated/meta" />
+    <content url="file://$MODULE_DIR$/androidMain/python" />
+    <content url="file://$MODULE_DIR$/commonMain/generated/meta" />
+    <content url="file://$MODULE_DIR$/commonMain/python" />
     <orderEntry type="jdk" jdkName="Python 3.11" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

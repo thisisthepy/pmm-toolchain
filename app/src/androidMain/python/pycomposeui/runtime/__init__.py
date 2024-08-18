@@ -16,9 +16,9 @@ def cp_info(target, ori):
 
 
 try:
-    _runtime = jclass("io.github.thisisthepy.pycomposeui.RuntimeKt")
+    _runtime = jclass("thisisthepy.pycomposeui.RuntimeKt")
     print("Compose Runtime:", _runtime)
-    _runtime_android = jclass("io.github.thisisthepy.pycomposeui.Runtime_androidKt")
+    _runtime_android = jclass("thisisthepy.pycomposeui.Runtime_androidKt")
     print("Compose Android Runtime:", _runtime_android)
     ComposableWrapper = _runtime.composableWrapper
     print("Composable Wrapper:", ComposableWrapper)

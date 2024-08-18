@@ -6,9 +6,9 @@ from java import jclass
 import traceback
 
 try:
-    _material3 = jclass("io.github.thisisthepy.pycomposeui.Material3Kt")
+    _material3 = jclass("thisisthepy.pycomposeui.Material3Kt")
     print("Compose Material3:", _material3)
-    _material3_android = jclass("io.github.thisisthepy.pycomposeui.Material3_androidKt")
+    _material3_android = jclass("thisisthepy.pycomposeui.Material3_androidKt")
     print("Compose Android Material3:", _material3_android)
     _Text = _material3.TextWidget
     #Text = lambda composer, *args, **kwargs: _Text(*args, **kwargs, composer, 1)

@@ -1,4 +1,4 @@
-package io.github.thisisthepy.pycomposeui
+package thisisthepy.pycomposeui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.MaterialTheme
