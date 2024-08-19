@@ -43,6 +43,7 @@ open class AndroidPlatformExtension(val name: String = "android") {
 
 open class AndroidVariant(val name: String) {
     var arch: String = ""
+    var binaries = BinariesExtension()
 }
 
 open class IosPlatformExtension {
@@ -56,6 +57,7 @@ open class IosPlatformExtension {
 
 open class IosVariant(val name: String) {
     var arch: String = ""
+    var binaries = BinariesExtension()
 }
 
 open class DesktopPlatformExtension {
@@ -68,4 +70,30 @@ open class DesktopPlatformExtension {
 
 open class DesktopVariant(val name: String) {
     var os: String = ""
+    var binaries = BinariesExtension()
+}
+
+open class BinariesExtension {
+    var frozenPackConfig: FrozenPackConfig? = null
+
+    fun frozenPack(action: FrozenPackConfig.() -> Unit) {
+        frozenPackConfig = FrozenPackConfig().apply(action)
+    }
+}
+
+sealed class BuildTypeEnum {
+    enum class DEBUG {
+        INSTANT, BYTECODE
+    }
+    enum class RELEASE {
+        BYTECODE, NATIVE, MIXED
+    }
+}
+
+open class FrozenPackConfig {
+    var test = BuildTypeEnum.DEBUG.INSTANT
+    fun a() {
+        test = BuildTypeEnum.DEBUG.BYTECODE
+        // test = BuildTypeEnum.RELEASE.BYTECODE
+    }
 }
