@@ -8,6 +8,7 @@ pluginManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
+        mavenLocal()
         mavenCentral()
         gradlePluginPortal()
         maven {
@@ -15,6 +16,7 @@ pluginManagement {
         }
     }
 }
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention").version("0.8.0")
 }
@@ -34,5 +36,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "PythonAppTemplate"
 
-include(":app")
+include(":toolchain")
 include(":pycomposeui")
+//include(":app")
