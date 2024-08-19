@@ -1,4 +1,4 @@
-package org.thisisthepy.toolchain.plugin.dependencies
+package org.thisisthepy.python.multiplatform.toolchain.dependency
 
 
 enum class DependencyType(private val type: String) {

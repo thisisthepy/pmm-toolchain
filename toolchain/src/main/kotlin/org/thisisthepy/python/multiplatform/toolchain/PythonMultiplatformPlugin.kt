@@ -1,5 +1,5 @@
 @file:JvmName("PythonMultiplatformPlugin")
-package org.thisisthepy.toolchain.plugin
+package org.thisisthepy.python.multiplatform.toolchain
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

@@ -23,7 +23,7 @@ dependencies {
 gradlePlugin {
     plugins {
         create("toolchain") {
-            id = group
+            id = group as String
             implementationClass = "$id.toolchain.PythonPlugin"
         }
     }

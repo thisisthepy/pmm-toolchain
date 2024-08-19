@@ -1,19 +1,13 @@
-package org.thisisthepy.toolchain.plugin
+package org.thisisthepy.python.multiplatform.toolchain.dsl
 
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.gradle.api.artifacts.UnresolvedDependency
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.Plugin
-import com.google.gson.Gson
 import org.gradle.api.NamedDomainObjectContainer
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.*
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-import java.nio.file.Paths
-import java.nio.file.Path
-import java.io.File
+import org.thisisthepy.python.multiplatform.toolchain.PythonMultiplatformPlugin
 
 
 fun Project.python(configure: Action<PyToolChainExtension>) {

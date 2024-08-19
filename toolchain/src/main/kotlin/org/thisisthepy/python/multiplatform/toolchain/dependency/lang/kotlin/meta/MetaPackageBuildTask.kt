@@ -1,18 +1,10 @@
-package org.thisisthepy.toolchain.plugin.meta
+package org.thisisthepy.python.multiplatform.toolchain.dependency.lang.kotlin.meta
 
 import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
-import com.google.gson.Gson
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.ResolvedArtifact
-import org.gradle.api.artifacts.UnresolvedDependency
-import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.thisisthepy.toolchain.kotlin.meta.processJarForMetaPackage
-import org.thisisthepy.toolchain.plugin.dependencies.DependencyType
-import org.thisisthepy.toolchain.plugin.dependencies.resolveDependenciesForPython
+import org.thisisthepy.python.multiplatform.toolchain.dependency.DependencyType
+import org.thisisthepy.python.multiplatform.toolchain.dependency.resolveDependenciesForPython
 
 
 class MetaPackageBuildTask : Plugin<Project> {

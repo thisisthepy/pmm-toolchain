@@ -1,4 +1,4 @@
-package com.github.thisisthepy.python
+package org.thisisthepy.python.multiplatform.toolchain.bundle
 
 import org.gradle.api.Project
 import java.io.File

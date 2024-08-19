@@ -29,7 +29,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Toolchain"
+rootProject.name = "ToolchainProject"
 
-//include(":toolchain")
-include(":usage-example")
+include(":toolchain")
+//include(":usage-example")

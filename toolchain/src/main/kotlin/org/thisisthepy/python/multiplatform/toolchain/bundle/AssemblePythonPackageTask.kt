@@ -1,4 +1,4 @@
-package com.github.thisisthepy.python.tasks
+package org.thisisthepy.python.multiplatform.toolchain.bundle
 
 import org.gradle.api.tasks.bundling.Zip
 import java.io.File

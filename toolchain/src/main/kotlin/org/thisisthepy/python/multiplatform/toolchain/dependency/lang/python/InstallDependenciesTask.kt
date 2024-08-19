@@ -1,4 +1,4 @@
-package com.github.thisisthepy.python.tasks
+package org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction

@@ -1,13 +1,12 @@
-package com.github.thisisthepy.python
+package org.thisisthepy.python.multiplatform.toolchain
 
-import com.github.thisisthepy.python.dsl.PythonExtension
-import com.github.thisisthepy.python.tasks.BuildPythonTask
-import com.github.thisisthepy.python.tasks.InstallDependenciesTask
-import com.github.thisisthepy.python.tasks.PackagePythonTask
+import org.thisisthepy.python.multiplatform.toolchain.dsl.PythonExtension
+import org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python.InstallDependenciesTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.register
+import org.thisisthepy.python.multiplatform.toolchain.bundle.AssemblePythonPackageTask
+import org.thisisthepy.python.multiplatform.toolchain.bundle.BuildPythonArtifactTask
 import java.io.File
 
 
@@ -26,12 +25,12 @@ class PythonPlugin : Plugin<Project> {
             group = TASK_GROUP
             description = "Installs Python dependencies using uv"
         }
-        val buildTask = project.tasks.register<BuildPythonTask>(BUILD_TASK) {
+        val buildTask = project.tasks.register<BuildPythonArtifactTask>(BUILD_TASK) {
             group = TASK_GROUP
             description = "Builds Python bundle including interpreter and source files"
             pythonVersion = extension.compileSdk
         }
-        val packageTask = project.tasks.register<PackagePythonTask>(PACKAGE_TASK) {
+        val packageTask = project.tasks.register<AssemblePythonPackageTask>(PACKAGE_TASK) {
             group = TASK_GROUP
             description = "Packages the Python application"
             embedLevel = extension.packaging.embedLevel

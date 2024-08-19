@@ -1,4 +1,4 @@
-package org.thisisthepy.python.multiplatform.toolchain.kotlin.meta
+package org.thisisthepy.python.multiplatform.toolchain.dependency.lang.kotlin
 
 import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata

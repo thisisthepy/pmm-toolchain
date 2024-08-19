@@ -1,4 +1,4 @@
-package com.github.thisisthepy.python.dsl
+package org.thisisthepy.python.multiplatform.toolchain.dsl
 
 import kotlin.reflect.KProperty
 

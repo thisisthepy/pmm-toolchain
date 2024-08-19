@@ -1,4 +1,4 @@
-package org.thisisthepy.toolchain.plugin.dependencies
+package org.thisisthepy.python.multiplatform.toolchain.dependency
 
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
