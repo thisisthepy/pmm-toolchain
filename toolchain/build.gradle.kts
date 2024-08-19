@@ -1,20 +1,18 @@
+group = rootProject.group
+version = rootProject.version
+
+
 plugins {
     `kotlin-dsl`
     `maven-publish`
     `java-gradle-plugin`
 }
 
-
-group = rootProject.group
-version = rootProject.version
-
-repositories {
-    google()
-    mavenCentral()
-    gradlePluginPortal()
-}
-
 dependencies {
+    //implementation(gradleApi())
+    //implementation(localGroovy())
+    //implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    
     implementation("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.5.0")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.0")
     implementation("com.google.code.gson:gson:2.11.0")
@@ -25,8 +23,8 @@ dependencies {
 gradlePlugin {
     plugins {
         create("toolchain") {
-            id = "$group.toolchain"
-            implementationClass = "$id.plugin.PythonMultiplatformPlugin"  // plugin implementation class path
+            id = group
+            implementationClass = "$id.toolchain.PythonPlugin"
         }
     }
 }
@@ -40,8 +38,4 @@ publishing {
     repositories {
         mavenLocal()
     }
-}
-
-tasks.test {
-    useJUnitPlatform()
 }

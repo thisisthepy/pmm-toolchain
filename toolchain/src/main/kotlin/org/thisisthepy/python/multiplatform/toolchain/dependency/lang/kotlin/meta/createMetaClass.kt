@@ -1,4 +1,4 @@
-package org.thisisthepy.toolchain.kotlin.meta
+package org.thisisthepy.python.multiplatform.toolchain.kotlin.meta
 
 import java.io.File
 import java.util.jar.JarFile

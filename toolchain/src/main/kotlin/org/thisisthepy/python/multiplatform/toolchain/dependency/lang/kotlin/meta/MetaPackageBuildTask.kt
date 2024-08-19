@@ -15,7 +15,7 @@ import org.thisisthepy.toolchain.plugin.dependencies.DependencyType
 import org.thisisthepy.toolchain.plugin.dependencies.resolveDependenciesForPython
 
 
-class MetaClassBuildPlugin : Plugin<Project> {
+class MetaPackageBuildTask : Plugin<Project> {
     override fun apply(project: Project) {
         project.tasks.register("createKotlinMetaPackageForPython") {
             val (dependencyTree, unresolvedTree, isChanged) = project.resolveDependenciesForPython()
