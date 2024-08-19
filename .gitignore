@@ -1,10 +1,9 @@
-#*.iml
+*.iml
 .kotlin
 .gradle
 **/build/
 xcuserdata
 !src/**/build/
-**/generated/meta/
 local.properties
 .idea
 .DS_Store

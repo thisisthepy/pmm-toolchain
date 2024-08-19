@@ -4,8 +4,9 @@ plugins {
     `java-gradle-plugin`
 }
 
-group = "org.thisisthepy"
-version = "0.0.1-alpha"
+
+group = rootProject.group
+version = rootProject.version
 
 repositories {
     google()

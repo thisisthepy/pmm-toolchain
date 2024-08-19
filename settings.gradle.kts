@@ -1,4 +1,5 @@
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         google {
@@ -11,14 +12,7 @@ pluginManagement {
         mavenLocal()
         mavenCentral()
         gradlePluginPortal()
-        maven {
-            setUrl("https://chaquo.com/maven-test")
-        }
     }
-}
-
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention").version("0.8.0")
 }
 
 dependencyResolutionManagement {
@@ -30,12 +24,12 @@ dependencyResolutionManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
+        mavenLocal()
         mavenCentral()
     }
 }
 
-rootProject.name = "PythonAppTemplate"
+rootProject.name = "Toolchain"
 
-include(":toolchain")
-include(":pycomposeui")
-//include(":app")
+//include(":toolchain")
+include(":usage-example")
