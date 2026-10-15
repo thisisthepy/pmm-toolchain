@@ -246,7 +246,7 @@ Prerequisites: `org.thisisthepy.python.multiplatform:packpack:0.1.0` in `~/.m2` 
 `pypackpack` repository), `uv` on `PATH`, and network access: `InstallDependenciesTaskTest` and
 `InstallerTest` run a real `uv add` against PyPI. `usage-example` additionally needs an Android SDK
 (`ANDROID_HOME`) and python-multiplatform in `~/.m2`: from a python-multiplatform checkout,
-`./gradlew publishAllToMavenLocal` (library `3.14.7-alpha01`, bindings plugin `3.13.0` until its #70).
+`./gradlew publishAllToMavenLocal` (library `3.15.0-alpha01`, bindings plugin `3.13.0` until its #70).
 
 Run each module separately (rule 8), with output to a file under `.tmp/`:
 
