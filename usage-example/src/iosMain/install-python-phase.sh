@@ -25,7 +25,7 @@ export PYTHON_PAYLOAD_DIR="$payload"
 
 # 2. Python.framework (libpython) into <app>/Frameworks, for the simulator or the device slice.
 # TODO(python-multiplatform#90): from the plugin's staged Python.xcframework, not the checkout's build/.
-xcframework="$PYTHON_MULTIPLATFORM_DIR/python-multiplatform/build/python-standalone/extracted/${PYTHON_VERSION:-3.14.7}/ios/Python.xcframework"
+xcframework="$PYTHON_MULTIPLATFORM_DIR/python-multiplatform/build/python-standalone/extracted/${PYTHON_VERSION:-3.15.0}/ios/Python.xcframework"
 case "${EFFECTIVE_PLATFORM_NAME:-}" in
     -iphonesimulator) slice="ios-arm64_x86_64-simulator" ;;
     -iphoneos) slice="ios-arm64" ;;
@@ -42,4 +42,4 @@ fi
 # 3. The stdlib prefix and the payload, by python-multiplatform's own phase script.
 # TODO(python-multiplatform#90): run from this project's Gradle root, not the checkout.
 cd "$PYTHON_MULTIPLATFORM_DIR"
-/bin/bash tools/xcode/install-python.sh
+/bin/bash python-multiplatform-gradle-plugin/src/main/resources/xcode/install-python.sh

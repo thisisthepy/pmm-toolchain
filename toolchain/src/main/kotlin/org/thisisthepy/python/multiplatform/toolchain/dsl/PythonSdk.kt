@@ -4,18 +4,19 @@ import org.gradle.api.SupportsKotlinAssignmentOverloading
 
 /**
  * The CPython versions python-multiplatform actually provides a runtime for: its
- * `gradle.properties` `pythonVersion` (3.14.7 on 2026-10-03), acquired as described in its
+ * `gradle.properties` `pythonVersion` (3.15.0 since python-multiplatform#197; 3.14.7 is kept), acquired as described in its
  * `docs/platforms/python-version-acquisition.md` (python-build-standalone for desktop, python.org
  * for Android, BeeWare's Python-Apple-support for iOS), plus 3.13.0, the older archive on its
  * `release` branch's `binary/` that pypackpack's `DefaultBackend.installPython` still downloads.
  * Add a version here and a constant to [PythonSdkVersion] when python-multiplatform pins one.
  */
 object PythonReleaseServer {
-    val PUBLISHED: List<String> = listOf("3.14.7", "3.13.0")
+    val PUBLISHED: List<String> = listOf("3.15.0", "3.14.7", "3.13.0")
 }
 
 /** `compileSdk = PY3_14_7`: a version python-multiplatform provides. Only those exist as constants. */
 enum class PythonSdkVersion(val version: String) {
+    PY3_15_0("3.15.0"),
     PY3_14_7("3.14.7"),
     PY3_13_0("3.13.0"),
 }
@@ -76,7 +77,7 @@ fun resolvePythonSdk(sdk: PythonSdk): ResolvedPythonSdk? {
             .maxByOrNull { it.micro }
 
     return if (published != null) {
-        ResolvedPythonSdk(version = published, fromConstant = sdk.constant != null, rejection = null)
+        ResolvedPythonSdk(version = published.copy(freeThreaded = parsed.freeThreaded), fromConstant = sdk.constant != null, rejection = null)
     } else {
         ResolvedPythonSdk(
             version = parsed,

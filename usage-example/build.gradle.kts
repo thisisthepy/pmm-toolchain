@@ -27,7 +27,7 @@ plugins {
 // `integration()`. The rest of the DSL surface (`buildFeatures`) is declared but not wired to any
 // task yet -- see the plugin's own README/report for what is scaffolding versus live.
 python {
-    compileSdk = PY3_14_7
+    compileSdk = PY3_15_0
     // A real `pypackpack` package (`pyproject.toml` + `src/main/<pkg>`), so the chain has a payload
     // to carry. Without it `buildPython` skips `pypackpack` entirely and every step downstream of it
     // -- the zip, and now the staging tasks -- correctly produces nothing, which makes "the artifact

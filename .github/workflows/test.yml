@@ -117,12 +117,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - uses: astral-sh/setup-uv@v6
 
       # usage-example applies three things from mavenLocal: packpack (through the plugin), the
       # toolchain plugin, and python-multiplatform's library and bindings plugin. Versions pinned in
-      # usage-example/gradle/libs.versions.toml (library 3.14.7-alpha01, plugin 3.13.0 until
+      # usage-example/gradle/libs.versions.toml (library 3.15.0-alpha01, plugin 3.13.0 until
       # python-multiplatform#70).
       - name: Publish packpack, the toolchain plugin and python-multiplatform to mavenLocal
         run: |
@@ -178,7 +178,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - uses: astral-sh/setup-uv@v6
 
       - name: Publish packpack, the toolchain plugin and python-multiplatform to mavenLocal
@@ -219,7 +219,7 @@ jobs:
   # python-multiplatform ships and unpacks (PythonBootstrap) plus this plugin's assets/python/
   # (example_py and iniconfig installed for x86_64-linux-android). The smoke result goes to logcat.
   # Green since python-multiplatform#72 (PR #75): the emulator logs PYTHON_SMOKE_OK with the stdlib
-  # unpacked under /data/data/<app>/files/lib/python3.14/.
+  # unpacked under /data/data/<app>/files/lib/python3.15/.
   android-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 75

@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           pmd="$GITHUB_WORKSPACE/.ci/python-multiplatform"
-          slice="$pmd/python-multiplatform/build/python-standalone/extracted/3.14.7/ios/Python.xcframework/ios-arm64_x86_64-simulator"
+          slice="$pmd/python-multiplatform/build/python-standalone/extracted/3.15.0/ios/Python.xcframework/ios-arm64_x86_64-simulator"
           # TODO(python-multiplatform#90): PYTHON_MULTIPLATFORM_DIR and the -framework Python link flags
           # are interim; the published plugin will stage Python.xcframework and its link options.
           xcodebuild -project usage-example/src/iosMain/app.xcodeproj -target iosApp \

@@ -50,6 +50,36 @@ class PythonSdkTest {
     }
 
     @Test
+    fun `3_15_0 is a published constant and X dot Y resolves to it`() {
+        val byConstant = resolvePythonSdk(PythonSdk().apply { assign(PythonSdkVersion.PY3_15_0) })!!
+        assertEquals("3.15.0", byConstant.version.toString())
+        assertNull(byConstant.rejection)
+        assertEquals(true, byConstant.fromConstant)
+
+        val byMinor = resolvePythonSdk(PythonSdk().apply { assign("3.15") })!!
+        assertEquals("3.15.0", byMinor.version.toReleaseString())
+        assertNull(byMinor.rejection)
+    }
+
+    @Test
+    fun `3_14_7 stays published beside 3_15_0`() {
+        assertTrue("3.14.7" in PythonReleaseServer.PUBLISHED && "3.15.0" in PythonReleaseServer.PUBLISHED)
+    }
+
+    @Test
+    fun `the free-threaded spelling resolves to a published version and keeps the t`() {
+        listOf("3.15t", "3.15.0t").forEach { raw ->
+            val resolved = resolvePythonSdk(PythonSdk().apply { assign(raw) })!!
+
+            assertNull(resolved.rejection, raw)
+            assertEquals(true, resolved.version.freeThreaded, raw)
+            assertEquals("3.15.0", resolved.version.toReleaseString(), raw)
+            assertEquals("3.15.0t", resolved.version.toWheelVersion(), raw)
+        }
+        assertEquals("3.15.0", resolvePythonSdk(PythonSdk().apply { assign("3.15") })!!.version.toWheelVersion())
+    }
+
+    @Test
     fun `a string naming a published version is accepted, X dot Y included`() {
         listOf("3.13.0", "3.13").forEach { raw ->
             val resolved = resolvePythonSdk(PythonSdk().apply { assign(raw) })!!

@@ -16,7 +16,7 @@ Kotlin Multiplatform 앱의 Python 부분을 Gradle `python { }` 블록으로 �
 ## 현재 상태 (2026-10-03, 코드와 테스트를 읽고 판정)
 
 **구현 (테스트 있음)**
-- `compileSdk` 버전 문자열 파싱 (alpha / rc / normal 채널), 그리고 이름 상수 `PY3_14_7`·`PY3_13_0`
+- `compileSdk` 버전 문자열 파싱 (alpha / rc / normal 채널), 그리고 이름 상수 `PY3_15_0`·`PY3_14_7`·`PY3_13_0`
   (python-multiplatform 이 런타임을 제공하는 버전만). 제공되지 않는 버전 문자열은 `buildPython…` 에서 이유와 함께 실패
 - `python { }` 최상위의 `android("android") { }` / `ios { }` / `desktop()` 과 변형 호출
   (`androidArm64()` 등) → `pypackpack` 타깃 트리플 매핑, Kotlin 타깃 대조 경고, 최소 SDK 전달.

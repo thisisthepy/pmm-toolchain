@@ -191,7 +191,11 @@ open class BuildPythonArtifactTask : DefaultTask() {
                 ?.let { throw GradleException(it) }
         }
 
-        val result = bundleWithPackpack(source, target, buildType, bundleDir, resolvedBuildLevel, minSdk, metaDirs, libDirs, versionName, versionCode)
+        val result =
+            bundleWithPackpack(
+                source, target, buildType, bundleDir, resolvedBuildLevel, minSdk, metaDirs, libDirs,
+                versionName, versionCode, compileSdkVersion?.let { wheelVersionOf(it) },
+            )
         logger.lifecycle(
             "Bundled ${result.fileCount} file(s) for Python '$pythonVersion' via packpack's " +
                 "'${result.bundleType.id}' bundler into ${result.outputDir} " +
@@ -201,6 +205,35 @@ open class BuildPythonArtifactTask : DefaultTask() {
         )
     }
 }
+
+/** The [BundleRequest] [bundleWithPackpack] hands pypackpack; separate so a test can read what is forwarded. */
+fun bundleRequestFor(
+    packageDir: File,
+    target: String,
+    buildType: String,
+    outputDir: File,
+    buildLevel: String = "instant",
+    minSdk: Int? = null,
+    metaDirs: List<File> = emptyList(),
+    libDirs: List<File> = emptyList(),
+    versionName: String? = null,
+    versionCode: Int? = null,
+    pythonVersion: String? = null,
+): BundleRequest =
+    BundleRequest(
+        packageDir = packageDir,
+        target = target,
+        buildType = buildType,
+        buildLevel = buildLevel,
+        outputDir = outputDir,
+        overwrite = true,
+        minSdk = minSdk,
+        metaDirs = metaDirs,
+        libDirs = libDirs,
+        versionName = versionName,
+        versionCode = versionCode,
+        pythonVersion = pythonVersion,
+    )
 
 /**
  * The actual delegation to `pypackpack`, factored out of [BuildPythonArtifactTask.buildPython] so
@@ -217,6 +250,9 @@ open class BuildPythonArtifactTask : DefaultTask() {
  *   caller that declares no `python { sourceSets { commonMain { metaDirs(...) } } }`.
  * @param libDirs forwarded to [BundleRequest.libDirs] verbatim. Empty by default, matching every
  *   caller that declares no `python { sourceSets { commonMain { libDirs(...) } } }`.
+ * @param pythonVersion forwarded to [BundleRequest.pythonVersion] verbatim (`3.15.0`, `3.15.0t`): the
+ *   app's interpreter, which fixes the wheel tags of the wheel bundlers. `null` (no `compileSdk`)
+ *   leaves pypackpack's own default.
  */
 fun bundleWithPackpack(
     packageDir: File,
@@ -229,20 +265,12 @@ fun bundleWithPackpack(
     libDirs: List<File> = emptyList(),
     versionName: String? = null,
     versionCode: Int? = null,
+    pythonVersion: String? = null,
 ): BundleResult {
     val request =
-        BundleRequest(
-            packageDir = packageDir,
-            target = target,
-            buildType = buildType,
-            buildLevel = buildLevel,
-            outputDir = outputDir,
-            overwrite = true,
-            minSdk = minSdk,
-            metaDirs = metaDirs,
-            libDirs = libDirs,
-            versionName = versionName,
-            versionCode = versionCode,
+        bundleRequestFor(
+            packageDir, target, buildType, outputDir, buildLevel, minSdk, metaDirs, libDirs,
+            versionName, versionCode, pythonVersion,
         )
     return BundlerInterface.create(BundleType.RESOURCE)
         .bundle(request)
@@ -330,3 +358,6 @@ fun bytecodeInterpreterRejection(
         "Recreate that .venv with Python ${compileSdk.major}.${compileSdk.minor} " +
         "(`uv venv --python ${compileSdk.major}.${compileSdk.minor}`)."
 }
+
+/** [PythonVersion.toWheelVersion] of a resolved `compileSdk` label (`PythonVersion.toString()`). */
+fun wheelVersionOf(compileSdkLabel: String): String = PythonVersion.parse(compileSdkLabel).toWheelVersion()

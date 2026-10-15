@@ -44,16 +44,30 @@ form `pypackpack` accepts. A blank value is a silent skip; a malformed one fails
 **Status: implemented**. `plugin/dsl/PythonVersion.kt`; `ptest/dsl/PythonVersionTest.kt`.
 
 `compileSdk` takes either form the example build file writes, both with `=` (Gradle's Kotlin
-assignment overloading on `PythonSdk`): a string, `compileSdk = "3.14.7"`, or a named constant,
-`compileSdk = PY3_14_7`. Constants exist only for versions python-multiplatform provides a runtime
-for (its pinned `pythonVersion`, 3.14.7, and the older 3.13.0 archive), so the example's
+assignment overloading on `PythonSdk`): a string, `compileSdk = "3.15.0"`, or a named constant,
+`compileSdk = PY3_15_0`. Constants exist only for versions python-multiplatform provides a runtime
+for (its pinned `pythonVersion`, 3.15.0; 3.14.7 and the older 3.13.0 archive are kept), so the example's
 `PY3_11_9_ALPHA` does not compile (INTENT §4.1). A string resolves to a provided version (`X.Y`
 takes the newest `X.Y.*`). A string naming a version that is not provided would be built
 automatically (INTENT §4.1), which is not available yet: the reason fails `buildPython…` (only
 when there is a package to bundle), not the configuration.
 
+A trailing `t` names the free-threaded build (`compileSdk = "3.15t"`, `"3.15.0t"`); it resolves
+against the same published list (python-multiplatform ships both builds of a pinned version) and
+there is no free-threaded constant. The `t` never reaches `toReleaseString()`, so the agreement
+check with python-multiplatform's `pythonVersion` (§1.12) compares `X.Y.Z` only. **Not checked:**
+whether python-multiplatform was built free-threaded (its `freeThreaded` flag is a separate
+attribute that toolchain does not read).
+
+The resolved version is also forwarded to every bundle as pypackpack's
+`BundleRequest.pythonVersion` (`3.15.0`, or `3.15.0t`; absent without `compileSdk`), which fixes the
+wheel tags (`cp315-cp315`, `cp315-cp315t`). **Status: implemented**.
+`ptest/bundle/BuildPythonArtifactTaskTest.kt`, `ptest/dsl/PythonSdkTest.kt`,
+`ptest/dsl/PythonVersionTest.kt`. Needs a `packpack` in `~/.m2` built from pypackpack#77 or later
+(the same `0.1.0` coordinates; CI publishes it from pypackpack `develop`).
+
 **Status: implemented**. `plugin/dsl/PythonSdk.kt`; `ptest/dsl/PythonSdkTest.kt`,
-`ptest/bundle/BuildPythonSdkRejectionTest.kt`; `usage-example` uses `compileSdk = PY3_14_7`.
+`ptest/bundle/BuildPythonSdkRejectionTest.kt`; `usage-example` uses `compileSdk = PY3_15_0`.
 
 **What `compileSdk` selects (#42).** `compileSdk` selects the Python version of the wheels that
 go into `python/`: it is the `--python-version` of every per-target install (§1.10, #16). It does

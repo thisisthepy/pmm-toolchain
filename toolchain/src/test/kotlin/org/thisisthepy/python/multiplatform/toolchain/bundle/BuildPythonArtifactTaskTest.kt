@@ -163,4 +163,24 @@ class BuildPythonArtifactTaskTest {
             result.outputDir.resolve("python/vendor_pkg/module.py").readText(),
         )
     }
+
+    /**
+     * `compileSdk` must reach `BundleRequest.pythonVersion` so wheel tags follow the app's
+     * interpreter (pypackpack#77: 3.15.0 is cp315-cp315, 3.15.0t is cp315-cp315t). Fails to compile
+     * before `bundleRequestFor` and `wheelVersionOf` exist.
+     */
+    @Test
+    fun `the compileSdk version is forwarded to packpack's BundleRequest pythonVersion`() {
+        val request = bundleRequestFor(
+            packageDir = fixturePackageDir(),
+            target = "aarch64-apple-darwin",
+            buildType = "debug",
+            outputDir = kotlin.io.path.createTempDirectory("packpack-bundle-out-pyver").toFile(),
+            pythonVersion = wheelVersionOf("3.15.0"),
+        )
+        assertEquals("3.15.0", request.pythonVersion)
+        assertEquals("3.15.0t", wheelVersionOf("3.15.0t"))
+        assertEquals("3.14.7", wheelVersionOf("3.14.7"))
+        assertEquals(null, bundleRequestFor(fixturePackageDir(), "aarch64-apple-darwin", "debug", java.io.File(".")).pythonVersion)
+    }
 }

@@ -24,7 +24,8 @@ enum class PythonReleaseChannel {
 
 /**
  * A parsed CPython version string, in the format `(플러그인예시)build.gradle.kts` actually writes
- * (`compileSdk = "3.11.9-alpha"`): `X.Y`, `X.Y.Z`, `X.Y.Z-alpha[N]`, or `X.Y.Z-rc[N]`.
+ * (`compileSdk = "3.11.9-alpha"`): `X.Y`, `X.Y.Z`, `X.Y.Z-alpha[N]`, or `X.Y.Z-rc[N]`, each with an
+ * optional trailing `t` for the free-threaded build (`3.15t`).
  *
  * Deliberately a different grammar from `pypackpack`'s own `validatePythonVersion`
  * (`cli/.../CommandExtension.kt`'s `^\d+\.\d+(\.\d+)?$`), which has no channel suffix at all --
@@ -37,9 +38,17 @@ data class PythonVersion(
     val micro: Int,
     val channel: PythonReleaseChannel,
     val serial: Int? = null,
+    /** The free-threaded build (PEP 703), spelled with a trailing `t`: `3.15t`, `3.15.0t`. */
+    val freeThreaded: Boolean = false,
 ) {
     /** The `X.Y.Z` form `pypackpack`'s `validatePythonVersion` accepts, channel suffix stripped. */
     fun toReleaseString(): String = "$major.$minor.$micro"
+
+    /**
+     * The `X.Y.Z` or `X.Y.Zt` form `pypackpack`'s `BundleRequest.pythonVersion` takes, which fixes
+     * the wheel tags (`3.15.0` is `cp315-cp315`, `3.15.0t` is `cp315-cp315t`).
+     */
+    fun toWheelVersion(): String = toReleaseString() + if (freeThreaded) "t" else ""
 
     override fun toString(): String =
         buildString {
@@ -49,10 +58,11 @@ data class PythonVersion(
                 PythonReleaseChannel.RC -> append("-rc${serial ?: ""}")
                 PythonReleaseChannel.NORMAL -> Unit
             }
+            if (freeThreaded) append("t")
         }
 
     companion object {
-        private val PATTERN = Regex("""^(\d+)\.(\d+)(?:\.(\d+))?(?:-(alpha|rc)(\d+)?)?$""")
+        private val PATTERN = Regex("""^(\d+)\.(\d+)(?:\.(\d+))?(?:-(alpha|rc)(\d+)?)?(t)?$""")
 
         /** Throws [IllegalArgumentException] on anything that does not match the format above. */
         fun parse(raw: String): PythonVersion {
@@ -60,10 +70,10 @@ data class PythonVersion(
             val match =
                 PATTERN.matchEntire(trimmed) ?: throw IllegalArgumentException(
                     "Invalid Python version '$raw'. Expected 'X.Y', 'X.Y.Z', 'X.Y.Z-alpha[N]', " +
-                        "or 'X.Y.Z-rc[N]'.",
+                        "or 'X.Y.Z-rc[N]', each optionally followed by 't' (free-threaded).",
                 )
 
-            val (majorStr, minorStr, microStr, channelWord, serialStr) = match.destructured
+            val (majorStr, minorStr, microStr, channelWord, serialStr, threadedStr) = match.destructured
             val major = majorStr.toInt()
             val minor = minorStr.toInt()
             val micro = microStr.toIntOrNull() ?: 0
@@ -76,7 +86,7 @@ data class PythonVersion(
                     else -> PythonReleaseChannel.NORMAL
                 }
 
-            return PythonVersion(major, minor, micro, channel, serial)
+            return PythonVersion(major, minor, micro, channel, serial, threadedStr == "t")
         }
     }
 }

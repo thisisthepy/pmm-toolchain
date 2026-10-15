@@ -82,7 +82,7 @@ class PythonVersionTest {
         val error = assertFailsWith<IllegalArgumentException> { PythonVersion.parse("not-a-version") }
         assertEquals(
             "Invalid Python version 'not-a-version'. Expected 'X.Y', 'X.Y.Z', 'X.Y.Z-alpha[N]', " +
-                "or 'X.Y.Z-rc[N]'.",
+                "or 'X.Y.Z-rc[N]', each optionally followed by 't' (free-threaded).",
             error.message,
         )
     }
@@ -90,5 +90,17 @@ class PythonVersionTest {
     @Test
     fun `an unknown channel word is rejected loudly`() {
         assertFailsWith<IllegalArgumentException> { PythonVersion.parse("3.13.0-beta1") }
+    }
+
+    @Test
+    fun `a trailing t marks the free-threaded build and the wheel version keeps it`() {
+        val threaded = PythonVersion.parse("3.15t")
+
+        assertEquals(true, threaded.freeThreaded)
+        assertEquals("3.15.0", threaded.toReleaseString())
+        assertEquals("3.15.0t", threaded.toWheelVersion())
+        assertEquals("3.15.0t", threaded.toString())
+        assertEquals(false, PythonVersion.parse("3.15.0").freeThreaded)
+        assertEquals("3.15.0", PythonVersion.parse("3.15.0-rc1").toWheelVersion())
     }
 }
