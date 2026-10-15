@@ -42,4 +42,4 @@ fi
 # 3. The stdlib prefix and the payload, by python-multiplatform's own phase script.
 # TODO(python-multiplatform#90): run from this project's Gradle root, not the checkout.
 cd "$PYTHON_MULTIPLATFORM_DIR"
-/bin/bash tools/xcode/install-python.sh
+/bin/bash python-multiplatform-gradle-plugin/src/main/resources/xcode/install-python.sh
