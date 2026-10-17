@@ -1,5 +1,6 @@
 package org.thisisthepy.python.multiplatform.toolchain.typedpython
 
+import org.thisisthepy.python.multiplatform.toolchain.deleteWithoutFollowingLinks
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
@@ -208,7 +209,7 @@ fun ensureTypedpythonGate(venv: File, version: String, pyreflyVersion: String, w
  * already installed. A host without a pyrefly wheel in the manifest fails, naming the platform.
  */
 fun ensureTypedpythonGateFromArchive(venv: File, archive: File, gateDir: File): File {
-    gateDir.deleteRecursively()
+    gateDir.deleteWithoutFollowingLinks()
     gateDir.mkdirs()
     java.util.zip.ZipFile(archive).use { zip ->
         zip.entries().asSequence().filter { !it.isDirectory }.forEach { entry ->
