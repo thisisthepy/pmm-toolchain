@@ -62,7 +62,7 @@ Kotlin Multiplatform 앱의 Python 부분을 Gradle `python { }` 블록으로 �
 - APK 로의 스테이징 연결: `android.sourceSets.main.assets` 등록은 실제 AGP 로 테스트됨
   (`PythonPluginAttachmentTest`), `preBuild`/`merge*Assets` 의존성은 Android SDK 가 있어야 생기므로 테스트 없음
 - iOS: `stagePythonBundleIosForXcode` 가 스테이징 후 `PYTHON_PAYLOAD_DIR=<경로>` 한 줄을 출력(python-multiplatform 의 `install-python.sh` 가 `PYTHON_PAYLOAD_DIR` 로 받아 복사하며, `python/` 을 복사하는 Xcode 단계는 하나뿐이어야 함. 손으로 배선할 때의 안전한 스니펫은 가이드에 있음; 스크립트 파일은 #62 에서 삭제). `.app` 으로 복사하는 Xcode 단계는 python-multiplatform(#59) 소유
-- 핫 리로드: Android 전용 `adb push` + 브로드캐스트. `serverHost`, `cert` 는 검증만
+- 핫 리로드: 아직 동작하지 않음. 앱에 RELOAD_PYTHON 수신자가 없어 `hotReloadPython` 은 그렇게 알리며 실패 (#103). 라이브 연결(docs/design/live-connection.md)로 교체 예정. `serverHost`, `cert` 는 검증만
 - 코드 푸시: 검증과 안내 태스크만, 업로드 없음
 - `installPythonDependencies`(`uv add`)는 여전히 모든 소스셋을 호스트용으로 설치하므로, 호스트 wheel 이 없는
   `androidMain` 전용 패키지는 이 태스크에서 실패할 수 있음. `ResourceBundler` 가 `.pyd` 를 빼므로 Windows
@@ -92,7 +92,7 @@ Python 코드와 의존성이 실려 빌드·실행되는 상태. 기한을 맞�
 
 11-30 이후로 넘김: `native`/`mixed`(pypackpack Cython 슬롯은 pypackpack M3, 나머지 컴파일러는 빈 껍데기),
 `useCodeMinifier`(pypackpack 에 minifier 없음), 코드 푸시 업로드와 HTTPS 핫 리로드 서버
-(지금은 `adb` 로 동작), 서버에 없는 CPython 자동 빌드(빌드 파이프라인 필요), `pip { jit }`(레시피 빌드 필요).
+(adb 경로는 수신자가 없어 꺼 둠, #103), 서버에 없는 CPython 자동 빌드(빌드 파이프라인 필요), `pip { jit }`(레시피 빌드 필요).
 
 ## 구조
 

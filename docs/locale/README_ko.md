@@ -139,7 +139,7 @@ flowchart LR
 | `bytecode` 컴파일 레벨 (`.pyc`, `compileSdk` 와 맞는 `.venv` 필요) | ✅ 구현 |
 | `native` / `mixed` 컴파일 레벨 | ⏳ 계획: 현재는 명시적으로 거부 |
 | 데스크톱 jar 와 APK 로의 스테이징 | 🟡 부분: iOS 는 스테이징만 되고 연결되지 않음 |
-| 핫 리로드 | 🟡 부분: Android 전용, `adb` 경유 |
+| 핫 리로드 | ⏳ 계획: 아직 어느 플랫폼에서도 동작하지 않음 (#103). 실행 중인 앱으로의 라이브 연결이 대신함 |
 | 코드 푸시 | 🟡 부분: 검증만, 업로드 없음 |
 | `buildFeatures { metaclass, compose }` | ✅ 구현: compose 위치는 Gradle 속성 두 개로 지정 |
 | `embedLevel`, `projectFlavors`, `pip { }` | ⏳ 계획 |
