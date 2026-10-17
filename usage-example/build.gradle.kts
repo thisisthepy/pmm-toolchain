@@ -57,6 +57,14 @@ python {
     }
     packaging {
         fileName = "usage-example"
+        // Required once a build type enables hot reload; nothing reads it until a server exists (SPEC §1.14).
+        hotReload { serverHost = "https://localhost:8080" }
+    }
+    // The example build file's debug switch. It stages python-multiplatform's dev-agent marker and gives the
+    // desktop `run` a port and a token (toolchain#105); `-Ppython.buildType=release` would do neither.
+    buildTypes {
+        getByName("debug") { enableHotReload = true }
+        getByName("release") { }
     }
     // `compose = true` is left out: it needs `python.compose.pythonxCompose` and
     // `python.compose.kotlinModule`, and neither artifact is published yet (docs/SPEC.md §1.16).

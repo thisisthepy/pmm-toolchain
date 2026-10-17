@@ -66,6 +66,25 @@ class StagePythonBundleTaskTest {
         assertEquals("VALUE = 1\n", staged.readText())
     }
 
+    /**
+     * toolchain#105: a hot-reload build's payload carries python-multiplatform's dev-agent marker, and only
+     * that build's. The runtime starts no agent without it (SPEC L-12), so a release payload must never keep
+     * one from an earlier debug staging; the clean sync removes it like any other stale file.
+     */
+    @Test
+    fun `the dev-agent marker is staged only when asked for, and a later staging without it removes it`() {
+        val bundle = bundleDir("fixture_pkg/__init__.py" to "VALUE = 1\n")
+        val destination = emptyDestination()
+        val marker = File(destination, "python/python_multiplatform_devagent.enable")
+
+        val debug = stagePythonPayload(bundle, destination, PythonStagingLayout.PAYLOAD_ROOT, devAgentMarker = true)
+        assertTrue(marker.isFile, "expected the marker at $marker")
+        assertEquals(1, debug.fileCount, "the marker is not a payload file")
+
+        stagePythonPayload(bundle, destination, PythonStagingLayout.PAYLOAD_ROOT, devAgentMarker = false)
+        assertFalse(marker.exists(), "a release staging kept the debug marker")
+    }
+
     @Test
     fun `keeps nested package structure, since that is what import resolution reads`() {
         val bundle = bundleDir(

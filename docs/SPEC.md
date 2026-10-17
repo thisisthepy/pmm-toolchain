@@ -437,6 +437,25 @@ naming the reason and runs no `adb`; the disabled task only prints its guide).
 `plugin/hotreload/WatchAndPush.kt`'s `adb` command builder and desktop copy helper are tested but unused;
 they go with M2.
 
+**The dev agent's launch (toolchain#105).** The active Python build type's `enableHotReload` (the example build
+file's `debug`) is the build-time switch for python-multiplatform's dev agent (its SPEC L-12). With it:
+
+- every `stagePythonBundle*` writes `python_multiplatform_devagent.enable` at the root of the staged `python/`
+  payload. The runtime starts no agent without that marker, so a build type without `enableHotReload` (a
+  release) opens no port even when its process is started with the variable. The marker is an `@Input` of the
+  stage task, and the clean sync removes it when the build type changes;
+- the desktop run tasks (Compose's `run`, a JVM target's `<target>Run`) get, before each run, a free loopback
+  port and a 32-byte random token (43 URL-safe characters, python-multiplatform's minimum). They are passed
+  as `PYTHON_MULTIPLATFORM_DEV_AGENT=port=<n>;token=<t>` and written to `build/pythonDevAgent/<task>.json`
+  (`{"host", "port", "token"}`, owner-only on POSIX) for the laptop side to read.
+
+`ptest/devagent/DevAgentLaunchTest.kt` (the switch, the token, the variable's form, the connection file's
+permissions), `ptest/bundle/StagePythonBundleTaskTest.kt` (the marker staged only when asked for, and removed by
+a later staging without it), `ptest/PythonPluginDevAgentTest.kt` (a hot-reload build marks every destination
+and its `run` starts an agent; a release build does neither). **Status: partial**: nothing on the laptop reads
+the connection file yet (`tcl connect`, the proxy kernel), a packaged desktop app or an Android or iOS launch
+gets no variable (M2, M3), and no CI job starts an app and connects.
+
 ### 1.15 Code push: `codePushPython`
 `packaging { codePush { serverHost; cert; uploadConfig { forceUpload; login { id; password } } } }`
 is validated the same way when any build type sets `enableCodePush = true`. The task prints that no
