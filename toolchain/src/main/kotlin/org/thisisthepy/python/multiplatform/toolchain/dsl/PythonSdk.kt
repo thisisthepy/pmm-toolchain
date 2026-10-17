@@ -3,22 +3,23 @@ package org.thisisthepy.python.multiplatform.toolchain.dsl
 import org.gradle.api.SupportsKotlinAssignmentOverloading
 
 /**
- * The CPython versions python-multiplatform actually provides a runtime for: its
- * `gradle.properties` `pythonVersion` (3.15.0 since python-multiplatform#197; 3.14.7 is kept), acquired as described in its
- * `docs/platforms/python-version-acquisition.md` (python-build-standalone for desktop, python.org
- * for Android, BeeWare's Python-Apple-support for iOS), plus 3.13.0, the older archive on its
- * `release` branch's `binary/` that pypackpack's `DefaultBackend.installPython` still downloads.
+ * The CPython versions python-multiplatform actually provides a runtime for: its `gradle.properties`
+ * `pythonVersion`, 3.15.0 (python-multiplatform#197). The runtime is CPython 3.15t, free-threaded only
+ * (python-multiplatform#158, toolchain#76), so the GIL-only 3.14.7 and 3.13.0 are gone.
+ *
+ * `3.15.0` without `t` still names python-multiplatform's GIL build: a temporary exception while its
+ * published runtime is the GIL build (`pythonFreeThreaded=false`) and Android and iOS have no 3.15t build
+ * (python-multiplatform#163). It goes when python-multiplatform publishes free-threaded as its default
+ * with the flavour in its version or metadata (`docs/SPEC.md` §1.2).
  * Add a version here and a constant to [PythonSdkVersion] when python-multiplatform pins one.
  */
 object PythonReleaseServer {
-    val PUBLISHED: List<String> = listOf("3.15.0", "3.14.7", "3.13.0")
+    val PUBLISHED: List<String> = listOf("3.15.0")
 }
 
-/** `compileSdk = PY3_14_7`: a version python-multiplatform provides. Only those exist as constants. */
+/** `compileSdk = PY3_15_0`: a version python-multiplatform provides. Only those exist as constants. */
 enum class PythonSdkVersion(val version: String) {
     PY3_15_0("3.15.0"),
-    PY3_14_7("3.14.7"),
-    PY3_13_0("3.13.0"),
 }
 
 /**
@@ -75,6 +76,17 @@ fun resolvePythonSdk(sdk: PythonSdk): ResolvedPythonSdk? {
             .filter { !explicitMicro || it.micro == parsed.micro }
             .filter { it.channel == parsed.channel }
             .maxByOrNull { it.micro }
+
+    if (parsed.major == 3 && parsed.minor < 15) {
+        return ResolvedPythonSdk(
+            version = parsed,
+            fromConstant = false,
+            rejection =
+                "Python compileSdk '${sdk.requested}' is a GIL-only CPython. The runtime is CPython 3.15t, " +
+                    "free-threaded only (python-multiplatform #158): use compileSdk = \"3.15t\" " +
+                    "(published: ${PythonReleaseServer.PUBLISHED.joinToString()}).",
+        )
+    }
 
     return if (published != null) {
         ResolvedPythonSdk(version = published.copy(freeThreaded = parsed.freeThreaded), fromConstant = sdk.constant != null, rejection = null)

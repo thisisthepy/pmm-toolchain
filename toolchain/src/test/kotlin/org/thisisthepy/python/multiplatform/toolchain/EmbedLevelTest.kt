@@ -74,11 +74,11 @@ class EmbedLevelTest {
 
     @Test
     fun `the embed record is JSON carrying the level, family, warning and expected interpreter version`() {
-        val json = embedRecordJson(2, "android", "raised \"x\"", "3.14.7")
+        val json = embedRecordJson(2, "android", "raised \"x\"", "3.15.0")
         assertTrue(json.contains("\"embedLevel\": 2"), json)
         assertTrue(json.contains("\"platformFamily\": \"android\""), json)
         assertTrue(json.contains("raised \\\"x\\\""), json)
-        assertTrue(json.contains("\"interpreterVersion\": \"3.14.7\""), json)
+        assertTrue(json.contains("\"interpreterVersion\": \"3.15.0\""), json)
         // toolchain ships no interpreter (SPEC §1.12, #42), so the record no longer says whether one is bundled.
         assertFalse(json.contains("interpreterBundled"), json)
         val none = embedRecordJson(0, "linux", null)
@@ -89,9 +89,9 @@ class EmbedLevelTest {
 
     @Test
     fun `the expected interpreter version is the compileSdk release at levels 1 and 2, none at 0`() {
-        assertNull(expectedInterpreterVersion(0, sdk("3.14.7")))
-        assertEquals("3.14.7", expectedInterpreterVersion(1, sdk("3.14")))
-        assertEquals("3.14.7", expectedInterpreterVersion(2, sdk("3.14.7")))
+        assertNull(expectedInterpreterVersion(0, sdk("3.15.0")))
+        assertEquals("3.15.0", expectedInterpreterVersion(1, sdk("3.15")))
+        assertEquals("3.15.0", expectedInterpreterVersion(2, sdk("3.15.0")))
         assertNull(expectedInterpreterVersion(2, null))
         // A rejected compileSdk (not provided by python-multiplatform) names no version to expect.
         assertNull(expectedInterpreterVersion(2, sdk("3.11.9-alpha")))
