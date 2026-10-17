@@ -32,7 +32,7 @@ val TYPEDPYTHON_MODES = listOf("checked", "compiled")
 /** The `typedpython` 0.1.0 wheel's own `Requires-Python`. The gate's venv is created for it. */
 const val TYPEDPYTHON_PYTHON_REQUEST = ">=3.13"
 
-/** Project property naming a directory holding the wheel, until `typedpython` is on PyPI. */
+/** Project property naming a directory holding both wheels; overrides the gate artifact. */
 const val TYPEDPYTHON_WHEEL_DIR_PROPERTY = "typedpython.wheelDir"
 
 const val TYPEDPYTHON_NO_STUBS_NOTICE =
@@ -72,6 +72,22 @@ abstract class TypedpythonCheckTask : DefaultTask() {
     @get:Input
     abstract val pyreflyVersion: Property<String>
 
+    /**
+     * The `typedpython-gate` zip resolved from [gateCoordinates] (#90), empty when the project's
+     * repositories do not have it.
+     */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val gateArchive: ConfigurableFileCollection
+
+    /** `group:artifact:version` of the gate ([DEFAULT_TYPEDPYTHON_GATE] or `-Ptypedpython.gate`). */
+    @get:Input
+    abstract val gateCoordinates: Property<String>
+
+    /** Where [gateArchive] is unzipped. Derived from it, so not an input of its own. */
+    @get:Internal
+    abstract val gateDir: DirectoryProperty
+
     /** `-Ptypedpython.wheelDir`, resolved against the project directory. */
     @get:Input
     @get:Optional
@@ -104,17 +120,22 @@ abstract class TypedpythonCheckTask : DefaultTask() {
             return
         }
 
-        // Before anything is created or run. `typedpython` is not ours on PyPI, so without a wheel
-        // directory there is nothing safe to install: skip, loudly -- never fall back to an index.
+        // Before anything is created or run. `typedpython` is not ours on PyPI, so it is installed from
+        // a wheel directory (-Ptypedpython.wheelDir) or from the gate artifact as a hash-pinned file,
+        // never by name from an index. With neither: skip, loudly.
         val wheels = wheelDir.orNull
-        if (wheels == null) {
-            logger.warn(typedpythonSkippedWarning(gateVersion.get(), pyreflyVersion.get()))
-            reportFile.parentFile.mkdirs()
-            reportFile.writeText("skipped: no -P$TYPEDPYTHON_WHEEL_DIR_PROPERTY\n")
-            return
-        }
+        val archive = gateArchive.files.firstOrNull { it.isFile }
         val venv = venvDir.get().asFile
-        val executable = ensureTypedpythonGate(venv, gateVersion.get(), pyreflyVersion.get(), wheels)
+        val executable = when {
+            wheels != null -> ensureTypedpythonGate(venv, gateVersion.get(), pyreflyVersion.get(), wheels)
+            archive != null -> ensureTypedpythonGateFromArchive(venv, archive, gateDir.get().asFile)
+            else -> {
+                logger.warn(typedpythonSkippedWarning(gateVersion.get(), pyreflyVersion.get()))
+                reportFile.parentFile.mkdirs()
+                reportFile.writeText("skipped: no gate artifact and no -P$TYPEDPYTHON_WHEEL_DIR_PROPERTY\n")
+                return
+            }
+        }
 
         val stubs = stubDirs.files.toList()
         if (stubs.isEmpty()) logger.lifecycle(TYPEDPYTHON_NO_STUBS_NOTICE)
@@ -166,18 +187,7 @@ fun ensureTypedpythonGate(venv: File, version: String, pyreflyVersion: String, w
     if (executable.isFile && marker.isFile && marker.readText() == request) return executable
 
     val work = venv.parentFile.apply { mkdirs() }
-    if (!File(venv, "pyvenv.cfg").isFile) {
-        // Through pypackpack's UV backend (AGENTS.md section 13); it can create a venv with these options.
-        val created = runBlocking {
-            BackendInterface.create(BackendType.UV).createVirtualEnvironment(
-                path = venv.path,
-                pythonVersion = TYPEDPYTHON_PYTHON_REQUEST,
-                extraArgs = typedpythonVenvOptions(),
-                workingDir = work,
-            )
-        }
-        created.onFailure { throw GradleException("Could not create the typedpython venv at $venv: ${it.message}", it) }
-    }
+    createTypedpythonVenv(venv, work)
     runUv(typedpythonInstallCommand(venv, version, pyreflyVersion, wheelDir), work).let { (exit, output) ->
         if (exit != 0) {
             throw GradleException(
@@ -189,6 +199,60 @@ fun ensureTypedpythonGate(venv: File, version: String, pyreflyVersion: String, w
     }
     if (!executable.isFile) throw GradleException("typedpython was installed into $venv but $executable does not exist")
     marker.writeText(request)
+    return executable
+}
+
+/**
+ * Unzips the `typedpython-gate` [archive] into [gateDir], then installs typedpython from it and pyrefly
+ * from PyPI, both pinned by the manifest's hashes (`--require-hashes`), unless the same requirements are
+ * already installed. A host without a pyrefly wheel in the manifest fails, naming the platform.
+ */
+fun ensureTypedpythonGateFromArchive(venv: File, archive: File, gateDir: File): File {
+    gateDir.deleteRecursively()
+    gateDir.mkdirs()
+    java.util.zip.ZipFile(archive).use { zip ->
+        zip.entries().asSequence().filter { !it.isDirectory }.forEach { entry ->
+            val target = File(gateDir, entry.name).canonicalFile
+            check(target.toPath().startsWith(gateDir.canonicalFile.toPath())) { "Entry ${entry.name} leaves $gateDir" }
+            target.parentFile.mkdirs()
+            zip.getInputStream(entry).use { input -> target.outputStream().use { input.copyTo(it) } }
+        }
+    }
+    val manifestFile = File(gateDir, TYPEDPYTHON_GATE_MANIFEST)
+    if (!manifestFile.isFile) throw GradleException("$archive has no $TYPEDPYTHON_GATE_MANIFEST at its root.")
+    val manifest = try {
+        parseTypedpythonGateManifest(manifestFile.readText())
+    } catch (e: IllegalArgumentException) {
+        throw GradleException("$archive: ${e.message}", e)
+    }
+    val osName = System.getProperty("os.name").orEmpty()
+    val osArch = System.getProperty("os.arch").orEmpty()
+    if (pyreflyWheelForHost(manifest, osName, osArch) == null) {
+        throw GradleException(pyreflyNoWheelMessage(manifest, osName, osArch))
+    }
+    val requirementsText = try {
+        typedpythonGateRequirements(manifest, gateDir)
+    } catch (e: IllegalStateException) {
+        throw GradleException(e.message.orEmpty(), e)
+    }
+
+    val executable = typedpythonExecutable(venv)
+    val marker = File(venv, ".typedpython-request")
+    if (executable.isFile && marker.isFile && marker.readText() == requirementsText) return executable
+
+    val work = venv.parentFile.apply { mkdirs() }
+    createTypedpythonVenv(venv, work)
+    val requirements = File(work, "gate-requirements.txt").apply { writeText(requirementsText) }
+    runUv(typedpythonHashedInstallCommand(venv, requirements), work).let { (exit, output) ->
+        if (exit != 0) {
+            throw GradleException(
+                "Could not install typedpython ${manifest.typedpythonVersion} (from $archive) and pyrefly " +
+                    "${manifest.pyreflyVersion} (from PyPI) into $venv with --require-hashes (uv exit $exit):\n$output",
+            )
+        }
+    }
+    if (!executable.isFile) throw GradleException("typedpython was installed into $venv but $executable does not exist")
+    marker.writeText(requirementsText)
     return executable
 }
 
@@ -204,9 +268,12 @@ fun typedpythonWheelInstruction(version: String, pyreflyVersion: String): String
  */
 fun typedpythonSkippedWarning(version: String, pyreflyVersion: String): String =
     "\n!!! typedpythonCheck SKIPPED: the project's Python was NOT type-checked !!!\n" +
-        "Why: the typedpython gate is not on PyPI yet, and it is never installed from an index " +
-        "(a package of that name there would not be ours).\n" +
-        "To turn the check on: pass -P$TYPEDPYTHON_WHEEL_DIR_PROPERTY=<directory>. " +
+        "Why: the gate artifact ($DEFAULT_TYPEDPYTHON_GATE:$TYPEDPYTHON_GATE_CLASSIFIER@zip, or the one " +
+        "-P$TYPEDPYTHON_GATE_PROPERTY names) is not in this project's repositories, and the typedpython gate " +
+        "is never installed by name from an index (a package of that name there would not be ours).\n" +
+        "To turn the check on: add the repository that has the gate (python-multiplatform's " +
+        "`./gradlew publishAllToMavenLocal` puts it in mavenLocal()), or pass " +
+        "-P$TYPEDPYTHON_WHEEL_DIR_PROPERTY=<directory>. " +
         typedpythonWheelInstruction(version, pyreflyVersion) + "\n"
 
 /**
@@ -214,6 +281,20 @@ fun typedpythonSkippedWarning(version: String, pyreflyVersion: String): String =
  * site-packages) and `metaDirs` (generated metadata) are bundled too but are not code the user wrote.
  */
 fun typedpythonCheckedDirs(packageDir: File, metaDirs: List<File>, libDirs: List<File>): List<File> = listOf(packageDir)
+
+/** Creates [venv] through pypackpack's UV backend (AGENTS.md section 13) unless it exists. */
+private fun createTypedpythonVenv(venv: File, work: File) {
+    if (File(venv, "pyvenv.cfg").isFile) return
+    val created = runBlocking {
+        BackendInterface.create(BackendType.UV).createVirtualEnvironment(
+            path = venv.path,
+            pythonVersion = TYPEDPYTHON_PYTHON_REQUEST,
+            extraArgs = typedpythonVenvOptions(),
+            workingDir = work,
+        )
+    }
+    created.onFailure { throw GradleException("Could not create the typedpython venv at $venv: ${it.message}", it) }
+}
 
 /** `uv venv` options for the gate: never the user's `pyproject.toml` project, and a fresh venv. */
 fun typedpythonVenvOptions(): Map<String, String> = linkedMapOf("no-project" to "", "clear" to "")

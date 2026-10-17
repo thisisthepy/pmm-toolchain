@@ -105,7 +105,7 @@ class TypedpythonDecisionsTest {
     fun `the skip warning says what was skipped, why, and how to turn the check on`() {
         val warning = typedpythonSkippedWarning("0.1.0", "1.3.2")
         assertTrue("SKIPPED" in warning && "NOT type-checked" in warning, warning)
-        assertTrue("not on PyPI" in warning, warning)
+        assertTrue("from an index" in warning, warning)
         assertTrue("-Ptypedpython.wheelDir" in warning, warning)
         assertTrue("typedpython-0.1.0" in warning && "pyrefly-1.3.2" in warning, warning)
     }
