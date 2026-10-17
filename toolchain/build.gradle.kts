@@ -6,9 +6,16 @@ plugins {
     `kotlin-dsl`
     `maven-publish`
     `java-gradle-plugin`
+    signing
+    // The Gradle Plugin Portal's publishing (`publishPlugins`); it also adds the sources and javadoc
+    // jars the portal and Maven Central require (toolchain#97). Nothing runs it here.
+    id("com.gradle.plugin-publish") version "1.3.1"
     // The native `tcl` (toolchain-lite) that the PyPI wheels carry; see the cli source sets below.
     id("org.graalvm.buildtools.native") version "0.10.6"
 }
+
+// packpack's coordinate, from gradle.properties (#99).
+val packpack = "${providers.gradleProperty("packpackModule").get()}:${providers.gradleProperty("packpackVersion").get()}"
 
 dependencies {
     //implementation(gradleApi())
@@ -20,8 +27,8 @@ dependencies {
     // not left as an independent literal. A skewed pin here (previously `2.0.0` against a `2.1.0`
     // root) put two different `kotlin-gradle-plugin` versions on the plugin classpath any consumer
     // sees once it applies both this plugin and `org.jetbrains.kotlin.multiplatform` in the same
-    // `plugins {}` block (as `sample/build.gradle.kts` does). Gradle does not merge/conflict
-    // -resolve those into one: `sample/build.gradle.kts` compiled its `KotlinWebpackConfig
+    // `plugins {}` block (as `usage-example/build.gradle.kts` does). Gradle does not merge/conflict
+    // -resolve those into one: `usage-example/build.gradle.kts` compiled its `KotlinWebpackConfig
     // .DevServer()` call (browser { commonWebpackConfig { ... } }) against 2.0.0's shape (`proxy:
     // Map<String, Any>`), while the actually-applied multiplatform plugin (2.1.0, `proxy:
     // List<Proxy>` as of that release) drove `wasmJsBrowserTest` task creation at runtime --
@@ -44,23 +51,31 @@ dependencies {
     // resolved through `mavenLocal()` (declared in the root `settings.gradle.kts`
     // `pluginManagement`/`dependencyResolutionManagement` repositories), which requires
     // `pypackpack`'s `packpack/build.gradle.kts` to have run `publishToMavenLocal` at least once.
-    implementation("org.thisisthepy.python.multiplatform:packpack:0.1.0")
+    implementation(packpack)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.test.junit)
     // Test-only: `PythonPluginAttachmentTest` applies `com.android.application` to a ProjectBuilder
     // project to check that the staged Android root really lands in `android.sourceSets.main.assets`
     // (the plugin reaches that object reflectively, so only a real AGP proves the method chain).
-    // Same version as `sample` (`gradle/libs.versions.toml` `agp`); never on the plugin's
+    // Same version as `usage-example` (`gradle/libs.versions.toml` `agp`); never on the plugin's
     // own runtime classpath.
     testImplementation("com.android.tools.build:gradle:${libs.versions.agp.get()}")
 }
 
 gradlePlugin {
+    website.set("https://thisisthepy.github.io/toolchain/")
+    vcsUrl.set("https://github.com/thisisthepy/toolchain")
     plugins {
         create("toolchain") {
-            id = group as String
-            implementationClass = "$id.toolchain.PythonPlugin"
+            // The id comes from gradle.properties (#99); the class is a Kotlin package, not a coordinate.
+            id = providers.gradleProperty("pluginId").get()
+            implementationClass = "org.thisisthepy.python.multiplatform.toolchain.PythonPlugin"
+            displayName = "thisisthepy toolchain"
+            description =
+                "Python in Kotlin Multiplatform apps: dependencies per target, bundling and staging of the " +
+                    "app's Python, through pypackpack."
+            tags.set(listOf("python", "kotlin-multiplatform", "android", "ios", "packaging"))
         }
     }
 }
@@ -99,9 +114,54 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 // plugin id (resolved via the marker) and get the jar through `pluginMaven` -- so it was pure
 // duplication, not an intentional second artifact. Removed rather than re-coordinated: there was
 // no second artifact to keep.
+// Maven Central and the Plugin Portal read the same POM fields (toolchain#97); both publications, the
+// plugin's jar (`pluginMaven`) and its marker, carry them.
 publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set("thisisthepy toolchain")
+            description.set("The Gradle plugin that puts an app's Python into Kotlin Multiplatform builds, through pypackpack.")
+            url.set("https://github.com/thisisthepy/toolchain")
+            licenses {
+                license {
+                    name.set("Apache-2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
+            developers {
+                developer {
+                    id.set("thisisthepy")
+                    name.set("thisisthepy")
+                    url.set("https://github.com/thisisthepy")
+                }
+            }
+            scm {
+                url.set("https://github.com/thisisthepy/toolchain")
+                connection.set("scm:git:https://github.com/thisisthepy/toolchain.git")
+                developerConnection.set("scm:git:ssh://git@github.com/thisisthepy/toolchain.git")
+            }
+        }
+    }
     repositories {
         mavenLocal()
+        // A rehearsal of a release: `publishAllPublicationsToStagingRepository` writes build/staging-deploy,
+        // which `.github/scripts/maven/check_central_bundle.py --plugin-id ...` checks. Nothing uploads.
+        maven {
+            name = "staging"
+            url = uri(layout.buildDirectory.dir("staging-deploy"))
+        }
+    }
+}
+
+// Signs only when a key is given (`-PsigningInMemoryKey`, `-PsigningInMemoryKeyPassword`, or the
+// ORG_GRADLE_PROJECT_ environment variables of the same names), as pypackpack does.
+signing {
+    val key = providers.gradleProperty("signingInMemoryKey").orNull
+    // plugin-publish signs every publication once `signing` is applied; without a key, skip instead of failing.
+    isRequired = key != null
+    if (key != null) {
+        useInMemoryPgpKeys(key, providers.gradleProperty("signingInMemoryKeyPassword").orNull)
+        sign(publishing.publications)
     }
 }
 
@@ -132,7 +192,7 @@ dependencies {
     // A thin CLI over pypackpack's dependency backend: the same packpack artifact `main` resolves
     // from mavenLocal (see this module's dependencies above).
     "cliMainImplementation"(libs.kotlinx.coroutines.core)
-    "cliMainImplementation"("org.thisisthepy.python.multiplatform:packpack:0.1.0")
+    "cliMainImplementation"(packpack)
     "cliTestImplementation"(libs.kotlin.test)
     "cliTestImplementation"(libs.kotlin.test.junit)
 }

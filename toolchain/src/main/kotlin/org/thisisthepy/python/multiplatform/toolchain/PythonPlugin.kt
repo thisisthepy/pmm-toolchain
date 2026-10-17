@@ -12,6 +12,7 @@ import org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python.Ins
 import org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python.resolvePipSettings
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -21,16 +22,23 @@ import org.thisisthepy.python.multiplatform.toolchain.bundle.AssemblePythonPacka
 import org.thisisthepy.python.multiplatform.toolchain.bundle.BuildPythonArtifactTask
 import org.thisisthepy.python.multiplatform.toolchain.bundle.PythonStagingPlatform
 import org.thisisthepy.python.multiplatform.toolchain.bundle.StagePythonBundleTask
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DEV_AGENT_CONNECTION_DIRECTORY
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DEV_AGENT_LAUNCH_ACTION
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DevAgentLaunchAction
+import org.thisisthepy.python.multiplatform.toolchain.devagent.devAgentEnabled
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.CodePushPendingTask
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.HotReloadPushTask
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.validateCodePushConfig
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.validateHotReloadConfig
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_PYREFLY_VERSION
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_TYPEDPYTHON_MODE
+import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_TYPEDPYTHON_GATE
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_TYPEDPYTHON_VERSION
+import org.thisisthepy.python.multiplatform.toolchain.typedpython.TYPEDPYTHON_GATE_PROPERTY
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.TYPEDPYTHON_WHEEL_DIR_PROPERTY
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.TypedpythonCheckTask
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.typedpythonCheckedDirs
+import org.thisisthepy.python.multiplatform.toolchain.typedpython.typedpythonGateNotation
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.typedpythonSourceExcluded
 import java.io.File
 
@@ -95,6 +103,23 @@ class PythonPlugin : Plugin<Project> {
                 project.providers.gradleProperty(TYPEDPYTHON_WHEEL_DIR_PROPERTY).map { project.file(it).absolutePath },
             )
             stubDirs.from(typedpythonStubs)
+            // The gate zip (#90), resolved leniently: a project whose repositories lack it gets the
+            // skip warning, not a failed configuration. -Ptypedpython.wheelDir wins over it.
+            val gate = project.providers.gradleProperty(TYPEDPYTHON_GATE_PROPERTY).orElse(DEFAULT_TYPEDPYTHON_GATE)
+            gateCoordinates.set(gate)
+            gateArchive.from(
+                project.provider {
+                    if (project.providers.gradleProperty(TYPEDPYTHON_WHEEL_DIR_PROPERTY).isPresent) {
+                        project.files()
+                    } else {
+                        project.configurations
+                            .detachedConfiguration(project.dependencies.create(typedpythonGateNotation(gate.get())))
+                            .apply { isTransitive = false }
+                            .incoming.artifactView { isLenient = true }.files
+                    }
+                },
+            )
+            gateDir.set(project.layout.buildDirectory.dir("typedpython/gate"))
             venvDir.set(project.layout.buildDirectory.dir("typedpython/venv"))
             report.set(project.layout.buildDirectory.file("typedpython/report.txt"))
         }
@@ -107,7 +132,7 @@ class PythonPlugin : Plugin<Project> {
         // destination roots are derived from the build directory alone (`PythonStagingPlatform.
         // rootIn`): an AGP asset source root has to be declared while the consumer's build script is
         // still being evaluated, because AGP reads its source sets in its own `afterEvaluate` and
-        // this plugin -- applied last in a `plugins { }` block, as `sample` applies it --
+        // this plugin -- applied last in a `plugins { }` block, as `usage-example` applies it --
         // registers its `afterEvaluate` callback after AGP's and therefore runs after it. A
         // `srcDir` added at that point is added to a source set nothing will look at again.
         //
@@ -266,8 +291,8 @@ class PythonPlugin : Plugin<Project> {
             // second code path doing the same job -- `buildTask` (`BuildPythonArtifactTask`) already
             // delegates the real work to `pypackpack`'s `ResourceBundler` into `build/pythonBundle`
             // (this task's own report; `docs/ecosystem.md` §1, §5). Confirmed nothing depended on
-            // it before deleting: no source under `sample/` reads `src/main/assets/python` or
-            // `build/pythonLibraries`, `sample` itself never sets `python.localLibraryPath`
+            // it before deleting: no source under `usage-example/` reads `src/main/assets/python` or
+            // `build/pythonLibraries`, `usage-example` itself never sets `python.localLibraryPath`
             // today, and `copyPythonLibrariesToAssets`/`preBuild` wiring existed only inside this
             // now-removed block, so nothing outside it could have depended on that task by name
             // either. Wiring the real bundle output into Android assets (or any other platform's
@@ -416,6 +441,7 @@ class PythonPlugin : Plugin<Project> {
             val activeBuildTypeName = resolveActiveBuildType(extension.buildTypes, requestedBuildType)
             val activeFlavorName = resolveActiveFlavor(extension.projectFlavors, project.findProperty("python.flavor") as? String)
             buildTask.configure { flavorRejection = flavorsWithoutVariantsRejection(extension.projectFlavors, variants) }
+            configureDevAgent(project, stageTasks, devAgentEnabled(extension.buildTypes, activeBuildTypeName))
 
             if (variants.isEmpty()) {
                 // No declared platform variant: exactly the pre-graph behavior, unchanged. One host
@@ -620,7 +646,7 @@ private fun registerStagingTasks(project: Project): Map<PythonStagingPlatform, T
  *   which is what the deleted `afterEvaluate` copy did.
  * - **iOS is staged but not attached.** A Kotlin/Native framework has no Gradle-side resource
  *   mechanism to add files to: resources reach an iOS app through an Xcode "Copy Bundle Resources"
- *   build phase, in a project file this plugin does not own (`sample`'s is
+ *   build phase, in a project file this plugin does not own (`usage-example`'s is
  *   `src/iosMain/app.xcodeproj`, hand-maintained). The staged directory is produced and its path is
  *   logged so the phase can point at it; automating the `.pbxproj` edit is a separate piece of work
  *   and is not pretended to be done here.
@@ -726,6 +752,31 @@ private fun registerAndroidAssetSourceDirectory(project: Project, directory: Fil
 }
 
 /**
+ * toolchain#105: a build whose active Python build type enables hot reload stages the dev-agent marker into
+ * every destination, and its desktop run tasks start an agent ([DevAgentLaunchAction]). Compose's `run` and
+ * the Kotlin JVM target's `<target>Run` are the run tasks; a packaged distribution is launched by the OS, not
+ * by Gradle, so it gets the marker (it was built from this build type) but no variable from here.
+ */
+private fun configureDevAgent(
+    project: Project,
+    stageTasks: Map<PythonStagingPlatform, TaskProvider<StagePythonBundleTask>>,
+    enabled: Boolean,
+) {
+    stageTasks.values.forEach { it.configure { devAgentMarker = enabled } }
+    if (!enabled) return
+    val runTaskNames = mutableSetOf("run")
+    project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
+        project.extensions.findByType(KotlinMultiplatformExtension::class.java)?.targets
+            ?.matching { it.platformType == KotlinPlatformType.jvm }
+            ?.all { runTaskNames += "${name}Run" }
+    }
+    val connectionDir = File(project.layout.buildDirectory.get().asFile, DEV_AGENT_CONNECTION_DIRECTORY)
+    project.tasks.withType(JavaExec::class.java).matching { it.name in runTaskNames }.configureEach {
+        doFirst(DEV_AGENT_LAUNCH_ACTION, DevAgentLaunchAction(File(connectionDir, "$name.json")))
+    }
+}
+
+/**
  * Picks the one variant each destination is staged from.
  *
  * Factored out of [PythonPlugin.apply] the same way [resolveActiveBuildType] and [resolveVariants]
@@ -824,7 +875,7 @@ data class PythonVariant(
  * `PythonPluginVariantGraphTest` for the design record, and `PythonPlugin.apply` for the wiring.
  *
  * Empty when no platform variant is declared, which is deliberately the case for every consumer
- * that exists today (`sample` declares no platform variant). The graph is opt-in: the
+ * that exists today (`usage-example` declares no platform variant). The graph is opt-in: the
  * platform block is what creates more than one target, and without it there is exactly one -- the
  * host -- built by the single `buildPython` task exactly as before.
  *
@@ -937,7 +988,7 @@ private fun String.capitalizeFirst(): String = replaceFirstChar { it.uppercaseCh
  * [PythonPlugin.apply] so it can be exercised without a Gradle [org.gradle.api.Project] -- see
  * `PythonPluginBuildTypeTest`.
  *
- * No declared build types at all (the common case today -- `sample` does not use the
+ * No declared build types at all (the common case today -- `usage-example` does not use the
  * `buildTypes { }` block) passes [requestedName] straight through, so `buildType` keeps behaving
  * exactly as it did before this DSL block was wired up. Once at least one build type is declared,
  * [requestedName] must name one of them; an unmatched name throws rather than silently defaulting,
@@ -967,7 +1018,7 @@ fun resolveActiveBuildType(
  * `PythonPluginSourceSetTest`.
  *
  * `localLibraryPath` is the explicit override and wins whenever it is declared, matching its
- * existing pre-graph behavior exactly (`sample` sets only `localLibraryPath`, no
+ * existing pre-graph behavior exactly (`usage-example` sets only `localLibraryPath`, no
  * `sourceSets` block, and keeps resolving the same way). `commonMain.srcDirs` -- `DSLBuild.kt`'s
  * `SourceSetConfig.srcDirs`, declared but read by nothing until now -- is the fallback: its first
  * entry, resolved against [projectDir]. A [SourceSetConfig] carries a list because a Kotlin source
@@ -1067,7 +1118,7 @@ fun collectIntegrationDependencies(sourceSets: List<SourceSetConfig>): List<Stri
  * else is refused as well rather than handed to `ResourceBundler` to refuse in its own words.
  *
  * `BuildType.compileLevel` defaults to `""` for both `DebugBuildType` and `ReleaseBuildType`, which
- * is why blank resolves to `"instant"` -- that keeps `sample` (which never sets
+ * is why blank resolves to `"instant"` -- that keeps `usage-example` (which never sets
  * `compileLevel`) building exactly as it did when this value was hard-coded.
  */
 fun resolveBuildLevel(compileLevel: String): String {

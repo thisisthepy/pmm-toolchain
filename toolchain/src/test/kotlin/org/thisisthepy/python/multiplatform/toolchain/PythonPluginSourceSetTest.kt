@@ -22,7 +22,7 @@ import kotlin.test.assertNull
  *
  * `localLibraryPath` stays the explicit override it always was -- declaring both `localLibraryPath`
  * and `commonMain.srcDirs` is not a conflict, `localLibraryPath` simply wins, so every existing
- * consumer (`sample` sets `localLibraryPath` and no `sourceSets` block) keeps resolving
+ * consumer (`usage-example` sets `localLibraryPath` and no `sourceSets` block) keeps resolving
  * exactly as before.
  *
  * Before [resolvePackageDir] exists, this file fails to compile rather than failing an assertion --

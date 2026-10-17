@@ -64,7 +64,7 @@ open class AssemblePythonPackageTask : Zip() {
         // Declared here, not inside `copy()`. `AbstractCopyTask.getSource()` is `@SkipWhenEmpty`, and
         // Gradle evaluates it *before* running the action -- so a `from()` issued inside `copy()`
         // arrives too late and the task is skipped as NO-SOURCE without ever calling `copy()` at
-        // all. That is what `:sample:packagePython` did before this change: it reported
+        // all. That is what `:usage-example:packagePython` did before this change: it reported
         // NO-SOURCE and produced no archive even with `build/pythonBundle` populated. Registering
         // the spec as a provider keeps it lazy (`bundleDir`, `fileName` and `variantName` are all
         // set by `PythonPlugin` after construction) while making the source and the archive name

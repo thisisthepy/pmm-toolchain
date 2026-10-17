@@ -1,5 +1,5 @@
-// sample/ is its own Gradle build (toolchain#22, #62), run with the repository's wrapper:
-// ./gradlew -p sample …. It consumes python-multiplatform, which is built with Kotlin 2.4, so it uses
+// usage-example/ is its own Gradle build (toolchain#22, #62), run with the repository's wrapper:
+// ./gradlew -p usage-example …. It consumes python-multiplatform, which is built with Kotlin 2.4, so it uses
 // that toolchain (gradle/libs.versions.toml here); the plugin in ../toolchain stays on
 // its own Kotlin for its consumers. Both plugins and the
 // python-multiplatform library come from mavenLocal: publish them first (see AGENTS.md §16).
@@ -32,4 +32,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "sample"
+rootProject.name = "usage-example"

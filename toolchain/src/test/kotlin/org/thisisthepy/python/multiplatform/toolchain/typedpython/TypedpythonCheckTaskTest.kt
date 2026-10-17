@@ -26,10 +26,10 @@ import kotlin.test.BeforeTest
  * The build scripts are Kotlin DSL (`build.gradle.kts`), as a consumer's are. What these tests
  * **cannot** see: `withPluginClasspath()` injects the plugin's classes instead of resolving them, so
  * the Kotlin DSL's pin of the buildscript `kotlin-stdlib` to Gradle's embedded version
- * (`{strictly 1.9.23}` on Gradle 8.9, see `:sample:buildEnvironment`) does not apply here. A
+ * (`{strictly 1.9.23}` on Gradle 8.9, see `:usage-example:buildEnvironment`) does not apply here. A
  * gate install through `pypackpack`'s suspend backend passed every test below and still died in
- * `sample` with `NoClassDefFoundError: kotlin/coroutines/jvm/internal/SpillingKt` -- see
- * [TypedpythonCheckTask]. Classpath problems show up in `sample`, not here.
+ * `usage-example` with `NoClassDefFoundError: kotlin/coroutines/jvm/internal/SpillingKt` -- see
+ * [TypedpythonCheckTask]. Classpath problems show up in `usage-example`, not here.
  *
  * Before `typedpythonCheck` exists, these fail with "Task 'typedpythonCheck' not found" or with
  * `buildPython` succeeding over an `Any` leak -- the pre-implementation failure, not a regression.

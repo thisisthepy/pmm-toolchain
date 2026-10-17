@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
  * docs/SPEC.md §1.1: applying the plugin id to a real Gradle `Project` creates the `python`
  * extension and registers the tasks of §1.10–§1.15, all in group `python`.
  *
- * Before this file the only thing that applied the plugin was a `sample` build, which needs
+ * Before this file the only thing that applied the plugin was a `usage-example` build, which needs
  * `publishToMavenLocal` first and an Android SDK; a ProjectBuilder project needs neither.
  */
 class PythonPluginApplyTest {

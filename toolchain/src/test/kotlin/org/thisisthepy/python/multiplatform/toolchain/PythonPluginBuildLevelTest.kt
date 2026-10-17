@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
  * variant, inside that variant's task action (AGENTS.md §14), with a message naming that slot.
  *
  * Blank resolves to `"instant"`: both `DebugBuildType` and `ReleaseBuildType` default `compileLevel`
- * to `""`, and `sample` never sets it.
+ * to `""`, and `usage-example` never sets it.
  */
 class PythonPluginBuildLevelTest {
     @Test

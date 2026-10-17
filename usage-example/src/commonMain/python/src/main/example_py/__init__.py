@@ -8,4 +8,4 @@ VERSION = "0.1.0"
 
 
 def greeting() -> str:
-    return f"Hello from the sample's Python payload {VERSION}"
+    return f"Hello from usage-example's Python payload {VERSION}"

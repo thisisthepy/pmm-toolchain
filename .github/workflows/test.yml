@@ -6,19 +6,20 @@ name: Test
 #
 # Both modules depend on org.thisisthepy.python.multiplatform:packpack:0.1.0 from
 # mavenLocal, so each job first publishes it from pypackpack's develop branch.
-# sample/ is its own build (toolchain#22, #62; python-multiplatform's Kotlin), run by the
-# consumer and e2e jobs with this repository's wrapper (../gradlew from sample/ = ./gradlew -p sample).
+# usage-example/ is its own build (toolchain#22, #62; python-multiplatform's Kotlin), run by the
+# consumer and e2e jobs with this repository's wrapper (../gradlew from usage-example/ = ./gradlew -p usage-example).
 on:
-  pull_request:
+  # Checked on develop after merging, not on every pull request (user decision,
+  # 2026-10-17). A red develop is fixed forward by its own pull request.
   push:
     branches: [develop]
-
+  workflow_dispatch:
 permissions:
   contents: read
 
 concurrency:
   group: test-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -94,7 +95,7 @@ jobs:
 
   # Unit tests run on Kotlin 2.x's stdlib, but a consumer runs the plugin on the kotlin-stdlib Gradle
   # embeds. pypackpack#31 broke every suspend call that way and no unit test could see it. This job is
-  # a real consumer: sample (its own build) with a real pip dependency installs, bundles, zips.
+  # a real consumer: usage-example (its own build) with a real pip dependency installs, bundles, zips.
   consumer:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -117,12 +118,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - uses: astral-sh/setup-uv@v6
 
-      # sample applies three things from mavenLocal: packpack (through the plugin), the
+      # usage-example applies three things from mavenLocal: packpack (through the plugin), the
       # toolchain plugin, and python-multiplatform's library and bindings plugin. Versions pinned in
-      # sample/gradle/libs.versions.toml (library 3.14.7-alpha01, plugin 3.13.0 until
+      # usage-example/gradle/libs.versions.toml (library 3.15.0-alpha01, plugin 3.13.0 until
       # python-multiplatform#70).
       - name: Publish packpack, the toolchain plugin and python-multiplatform to mavenLocal
         run: |
@@ -137,7 +138,7 @@ jobs:
           (cd .ci/python-multiplatform && ./gradlew -p python-multiplatform-gradle-plugin publishToMavenLocal --console=plain)
 
       - name: Install, bundle and zip as a consumer
-        working-directory: sample
+        working-directory: usage-example
         run: |
           ../gradlew installPythonDependencies buildPython packagePython \
             --console=plain > consumer.log 2>&1 || { cat consumer.log; exit 1; }
@@ -178,7 +179,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - uses: astral-sh/setup-uv@v6
 
       - name: Publish packpack, the toolchain plugin and python-multiplatform to mavenLocal
@@ -194,11 +195,11 @@ jobs:
           (cd .ci/python-multiplatform && ./gradlew -p python-multiplatform-gradle-plugin publishToMavenLocal --console=plain)
 
       - name: Package the desktop app
-        working-directory: sample
+        working-directory: usage-example
         run: ../gradlew createDistributable --console=plain
 
       - name: Run the packaged app's Python, headless and without PYTHONHOME
-        working-directory: sample
+        working-directory: usage-example
         run: |
           set -euo pipefail
           app=$(find build/compose/binaries/main/app -maxdepth 3 -type f -path '*/bin/*' | head -n 1)
@@ -219,7 +220,7 @@ jobs:
   # python-multiplatform ships and unpacks (PythonBootstrap) plus this plugin's assets/python/
   # (example_py and iniconfig installed for x86_64-linux-android). The smoke result goes to logcat.
   # Green since python-multiplatform#72 (PR #75): the emulator logs PYTHON_SMOKE_OK with the stdlib
-  # unpacked under /data/data/<app>/files/lib/python3.14/.
+  # unpacked under /data/data/<app>/files/lib/python3.15/.
   android-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -253,7 +254,7 @@ jobs:
           (cd .ci/python-multiplatform && ./gradlew -p python-multiplatform-gradle-plugin publishToMavenLocal --console=plain)
 
       - name: Build the debug APK
-        working-directory: sample
+        working-directory: usage-example
         run: ../gradlew assembleDebug --console=plain
 
       - name: Enable KVM for the emulator
@@ -270,7 +271,7 @@ jobs:
           target: google_apis
           disable-animations: true
           script: |
-            set -eu; apk=$(find sample/build/outputs/apk/debug -name '*.apk' | head -n 1); [ -n "$apk" ]; adb install -r "$apk"; adb logcat -c; adb shell am start -W -n org.thisisthepy.python.multiplatform.toolchain.example/.MainActivity --ez python-smoke true; sleep 20; adb logcat -d -s PythonSmoke:V > smoke.log; cat smoke.log; grep -q 'PYTHON_SMOKE_OK ' smoke.log; grep 'PYTHON_SMOKE_OK ' smoke.log | grep -q '/data/'
+            set -eu; apk=$(find usage-example/build/outputs/apk/debug -name '*.apk' | head -n 1); [ -n "$apk" ]; adb install -r "$apk"; adb logcat -c; adb shell am start -W -n org.thisisthepy.python.multiplatform.toolchain.example/.MainActivity --ez python-smoke true; sleep 20; adb logcat -d -s PythonSmoke:V > smoke.log; cat smoke.log; grep -q 'PYTHON_SMOKE_OK ' smoke.log; grep 'PYTHON_SMOKE_OK ' smoke.log | grep -q '/data/'
 
   guide:
     runs-on: ubuntu-latest

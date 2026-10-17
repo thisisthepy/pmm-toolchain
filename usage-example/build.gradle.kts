@@ -13,21 +13,21 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
-    // sample is its own build (settings.gradle.kts here). The toolchain plugin is resolved by
+    // usage-example is its own build (settings.gradle.kts here). The toolchain plugin is resolved by
     // coordinate from mavenLocal (`./gradlew :toolchain:publishToMavenLocal` in ../), as is
     // python-multiplatform's bindings plugin, which stages and packages the CPython stdlib (#22).
     alias(libs.plugins.toolchain)
     alias(libs.plugins.python.multiplatform.bindings)
 }
 
-// Exercises the target DSL surface end to end -- until now `sample` did not apply the
+// Exercises the target DSL surface end to end -- until now `usage-example` did not apply the
 // plugin at all, so the DSL in `dsl/` had no executable definition (`docs/ecosystem.md` §2, §4
 // item 7). This is deliberately the subset of `(플러그인예시)build.gradle.kts` that today's tasks
 // (`PythonPlugin.kt`) actually read: `compileSdk`, `packaging`, `buildTypes`, `platforms`, and
 // `integration()`. The rest of the DSL surface (`buildFeatures`) is declared but not wired to any
 // task yet -- see the plugin's own README/report for what is scaffolding versus live.
 python {
-    compileSdk = PY3_14_7
+    compileSdk = PY3_15_0
     // A real `pypackpack` package (`pyproject.toml` + `src/main/<pkg>`), so the chain has a payload
     // to carry. Without it `buildPython` skips `pypackpack` entirely and every step downstream of it
     // -- the zip, and now the staging tasks -- correctly produces nothing, which makes "the artifact
@@ -56,7 +56,15 @@ python {
         }
     }
     packaging {
-        fileName = "sample"
+        fileName = "usage-example"
+        // Required once a build type enables hot reload; nothing reads it until a server exists (SPEC §1.14).
+        hotReload { serverHost = "https://localhost:8080" }
+    }
+    // The example build file's debug switch. It stages python-multiplatform's dev-agent marker and gives the
+    // desktop `run` a port and a token (toolchain#105); `-Ppython.buildType=release` would do neither.
+    buildTypes {
+        getByName("debug") { enableHotReload = true }
+        getByName("release") { }
     }
     // `compose = true` is left out: it needs `python.compose.pythonxCompose` and
     // `python.compose.kotlinModule`, and neither artifact is published yet (docs/SPEC.md §1.16).

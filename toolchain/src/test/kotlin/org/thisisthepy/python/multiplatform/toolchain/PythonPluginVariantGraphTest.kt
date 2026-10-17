@@ -49,7 +49,7 @@ import kotlin.test.assertTrue
  *
  * [resolveVariants] returns an empty list when `python { }` platform declares nothing, and
  * `PythonPlugin` then leaves `buildPython`/`packagePython` doing exactly what they do today: one
- * host-target bundle, one `<fileName>.zip`. `sample` declares no platforms, so the only
+ * host-target bundle, one `<fileName>.zip`. `usage-example` declares no platforms, so the only
  * chain that currently runs end to end is unaffected by any of this. The platform block is what
  * creates more than one target; without it there is exactly one, and one build type chosen by
  * `-Ppython.buildType` as before.

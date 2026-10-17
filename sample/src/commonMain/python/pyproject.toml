@@ -1,5 +1,0 @@
-[project]
-name = "sample-python"
-version = "0.1.0"
-description = "The Python half of the sample app, bundled by pypackpack and staged by the toolchain plugin."
-requires-python = ">=3.13"

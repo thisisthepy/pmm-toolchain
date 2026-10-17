@@ -66,6 +66,25 @@ class StagePythonBundleTaskTest {
         assertEquals("VALUE = 1\n", staged.readText())
     }
 
+    /**
+     * toolchain#105: a hot-reload build's payload carries python-multiplatform's dev-agent marker, and only
+     * that build's. The runtime starts no agent without it (SPEC L-12), so a release payload must never keep
+     * one from an earlier debug staging; the clean sync removes it like any other stale file.
+     */
+    @Test
+    fun `the dev-agent marker is staged only when asked for, and a later staging without it removes it`() {
+        val bundle = bundleDir("fixture_pkg/__init__.py" to "VALUE = 1\n")
+        val destination = emptyDestination()
+        val marker = File(destination, "python/python_multiplatform_devagent.enable")
+
+        val debug = stagePythonPayload(bundle, destination, PythonStagingLayout.PAYLOAD_ROOT, devAgentMarker = true)
+        assertTrue(marker.isFile, "expected the marker at $marker")
+        assertEquals(1, debug.fileCount, "the marker is not a payload file")
+
+        stagePythonPayload(bundle, destination, PythonStagingLayout.PAYLOAD_ROOT, devAgentMarker = false)
+        assertFalse(marker.exists(), "a release staging kept the debug marker")
+    }
+
     @Test
     fun `keeps nested package structure, since that is what import resolution reads`() {
         val bundle = bundleDir(
@@ -121,7 +140,7 @@ class StagePythonBundleTaskTest {
         // A regression guard for a defect this task actually had. With the bundle declared nowhere,
         // Gradle had nothing to compare and reported `stagePythonBundleDesktop UP-TO-DATE` on every
         // run after the first, so the staged tree -- and the jar built from it -- kept a payload
-        // from an earlier revision of the Python package. Found by building `:sample:
+        // from an earlier revision of the Python package. Found by building `:usage-example:
         // desktopJar`, deleting a module, and building again: the module was still in the archive.
         //
         // Asserted on the annotation rather than through a Gradle run because up-to-date checking

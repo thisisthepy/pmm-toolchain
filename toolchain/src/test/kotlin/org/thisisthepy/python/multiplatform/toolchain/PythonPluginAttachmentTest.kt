@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  * - Android: the staged Android root is an asset source directory of `android.sourceSets.main`,
  *   registered at apply time (AGENTS.md §15: AGP reads source sets in its own `afterEvaluate`).
  *   `PythonPlugin` reaches that object reflectively, so the test applies the real Android Gradle
- *   plugin (the version `sample` uses) rather than a fake, to prove the method chain exists.
+ *   plugin (the version `usage-example` uses) rather than a fake, to prove the method chain exists.
  */
 class PythonPluginAttachmentTest {
     private fun newProject(): Project =

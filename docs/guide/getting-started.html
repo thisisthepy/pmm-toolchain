@@ -40,7 +40,7 @@
 <section>
 <h2><span data-lang="en">2. A Python package</span><span data-lang="ko">2. Python 패키지</span></h2>
 <p data-lang="en">The plugin bundles a <em>pypackpack package</em>: a directory with a <code>pyproject.toml</code> and its code under <code>src/main/</code>. Platform-specific code can sit in <code>src/android</code>, <code>src/ios</code> and so on; the bundler overlays it.</p><p data-lang="ko">플러그인이 번들링하는 것은 <em>pypackpack 패키지</em>입니다. <code>pyproject.toml</code> 이 있고 코드가 <code>src/main/</code> 아래에 있는 디렉터리입니다. 플랫폼 전용 코드는 <code>src/android</code>, <code>src/ios</code> 등에 두면 번들러가 덮어씌웁니다.</p>
-<pre><code class="language-text">sample/src/commonMain/python/
+<pre><code class="language-text">usage-example/src/commonMain/python/
 ├── pyproject.toml
 └── src/main/example_py/
     ├── __init__.py
@@ -59,17 +59,17 @@ python {
     compileSdk = &quot;3.13&quot;
     localLibraryPath = &quot;src/commonMain/python&quot;
     packaging {
-        fileName = &quot;sample&quot;
+        fileName = &quot;usage-example&quot;
     }
 }</code></pre>
-<p data-lang="en">This is the repository's own <code>sample/build.gradle.kts</code>. Instead of <code>localLibraryPath</code> you can point <code>sourceSets { commonMain { srcDirs(...) } }</code> at the package.</p><p data-lang="ko">이 저장소의 <code>sample/build.gradle.kts</code> 그대로입니다. <code>localLibraryPath</code> 대신 <code>sourceSets { commonMain { srcDirs(...) } }</code> 로 패키지를 가리켜도 됩니다.</p>
+<p data-lang="en">This is the repository's own <code>usage-example/build.gradle.kts</code>. Instead of <code>localLibraryPath</code> you can point <code>sourceSets { commonMain { srcDirs(...) } }</code> at the package.</p><p data-lang="ko">이 저장소의 <code>usage-example/build.gradle.kts</code> 그대로입니다. <code>localLibraryPath</code> 대신 <code>sourceSets { commonMain { srcDirs(...) } }</code> 로 패키지를 가리켜도 됩니다.</p>
 </section>
 
 <section>
 <h2><span data-lang="en">4. Run it</span><span data-lang="ko">4. 실행</span></h2>
-<pre><code class="language-shell">./gradlew -p sample packagePython            # installPythonDependencies → buildPython → zip
-./gradlew -p sample stagePythonBundle        # copy python/ where each platform packages from
-./gradlew -p sample tasks --group python     # everything the plugin registered</code></pre>
+<pre><code class="language-shell">./gradlew -p usage-example packagePython            # installPythonDependencies → buildPython → zip
+./gradlew -p usage-example stagePythonBundle        # copy python/ where each platform packages from
+./gradlew -p usage-example tasks --group python     # everything the plugin registered</code></pre>
 </section>
 
 <section>

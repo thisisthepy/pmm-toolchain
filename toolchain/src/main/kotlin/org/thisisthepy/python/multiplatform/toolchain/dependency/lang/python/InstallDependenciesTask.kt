@@ -17,7 +17,7 @@ import java.io.File
  * instead of hand-rolling a requirements file and shelling out to a `uv install` subcommand that
  * does not exist (`uv` has no `install` verb; the previous implementation was never exercised end to
  * end -- see `BuildPythonArtifactTask`'s kdoc and this module's report for why nothing reached this
- * task's execution before `sample` applied the plugin).
+ * task's execution before `usage-example` applied the plugin).
  *
  * `pypackpack` owns dependency resolution (`docs/ecosystem.md` §1, §5); this task's only job is
  * translating this project's Gradle-side inputs (the DSL-resolved dependency list, the `ppp`
@@ -35,7 +35,7 @@ import java.io.File
 open class InstallDependenciesTask : DefaultTask() {
     // `@Internal`, matching `BuildPythonArtifactTask`'s fix for the same problem: Gradle 8's task
     // property validation (execution-time, not compile-time) rejects any public task property with
-    // no annotation at all. This surfaced only once `sample` started applying the plugin and
+    // no annotation at all. This surfaced only once `usage-example` started applying the plugin and
     // actually running `installPythonDependencies` as part of the `packagePython` chain -- nothing
     // had ever reached this task's execution before. `@Internal` is the honest answer for now; this
     // property does not participate in up-to-date checking.
