@@ -5,15 +5,10 @@ name: iOS e2e
 # macOS minutes cost ~10x, so this runs only for iOS wiring changes, on develop and by hand, and is
 # informational (not a required check). Lead decision, 2026-10-03.
 on:
+  # Checked on develop after merging, not on every pull request (user decision,
+  # 2026-10-17). A red develop is fixed forward by its own pull request.
   push:
     branches: [develop]
-  pull_request:
-    paths:
-      - "usage-example/src/iosMain/**"
-      - "usage-example/build.gradle.kts"
-      - "usage-example/gradle/**"
-      - "toolchain/src/main/kotlin/org/thisisthepy/python/multiplatform/toolchain/bundle/**"
-      - ".github/workflows/test-ios.yml"
   workflow_dispatch:
 
 permissions:
