@@ -8,8 +8,6 @@ open class PythonExtension @Inject constructor(objects: ObjectFactory) {
     /** `compileSdk = "3.15.0"` or `compileSdk = PY3_15_0` (`"3.15t"` for the free-threaded build); see [PythonSdk]. */
     val compileSdk: PythonSdk = PythonSdk()
     val PY3_15_0: PythonSdkVersion = PythonSdkVersion.PY3_15_0
-    val PY3_14_7: PythonSdkVersion = PythonSdkVersion.PY3_14_7
-    val PY3_13_0: PythonSdkVersion = PythonSdkVersion.PY3_13_0
     var localLibraryPath: String? = null
 
     val defaultConfig: DefaultConfig = DefaultConfig()

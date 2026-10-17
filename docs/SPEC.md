@@ -46,11 +46,22 @@ form `pypackpack` accepts. A blank value is a silent skip; a malformed one fails
 `compileSdk` takes either form the example build file writes, both with `=` (Gradle's Kotlin
 assignment overloading on `PythonSdk`): a string, `compileSdk = "3.15.0"`, or a named constant,
 `compileSdk = PY3_15_0`. Constants exist only for versions python-multiplatform provides a runtime
-for (its pinned `pythonVersion`, 3.15.0; 3.14.7 and the older 3.13.0 archive are kept), so the example's
-`PY3_11_9_ALPHA` does not compile (INTENT §4.1). A string resolves to a provided version (`X.Y`
+for (its pinned `pythonVersion`, 3.15.0), so the example's `PY3_11_9_ALPHA` does not compile (INTENT §4.1). A string resolves to a provided version (`X.Y`
 takes the newest `X.Y.*`). A string naming a version that is not provided would be built
 automatically (INTENT §4.1), which is not available yet: the reason fails `buildPython…` (only
 when there is a package to bundle), not the configuration.
+
+**CPython 3.15t only (#76).** The runtime is CPython 3.15t, free-threaded only (python-multiplatform #158).
+`PY3_14_7` and `PY3_13_0` are gone, and a string naming a CPython before 3.15 (`"3.14.7"`, `"3.13"`) is
+refused as a GIL-only build, inside `buildPython…` as above, with a message that points to `"3.15t"`.
+Test: `PythonSdkTest` (`a CPython before 3_15 is refused as a GIL build, inside the task`).
+
+**Temporary exception: `3.15.0` without `t` (`PY3_15_0`).** It names python-multiplatform's GIL build,
+which is what python-multiplatform publishes today: its `gradle.properties` has `pythonFreeThreaded=false`,
+its artifact version (`3.15.0-alpha01`) carries no flavour, and Android and iOS have no 3.15t build yet
+(python-multiplatform #163). Selecting `cp315t` wheels for that runtime would install wheels it cannot
+load. The exception is removed, and `3.15.0` then means `3.15.0t`, when python-multiplatform publishes
+free-threaded as its default with the flavour in its version or metadata, and #163 lands; #76 tracks it.
 
 A trailing `t` names the free-threaded build (`compileSdk = "3.15t"`, `"3.15.0t"`); it resolves
 against the same published list (python-multiplatform ships both builds of a pinned version) and

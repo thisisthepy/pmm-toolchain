@@ -34,7 +34,7 @@ open class FakeEmbeddedPythonVersion(var pythonVersion: String)
 class PythonPluginPythonOnlyTest {
     private fun configured(
         project: Project,
-        sdk: String? = "3.14.7",
+        sdk: String? = "3.15.0",
         pythonMultiplatformVersion: String? = null,
         configure: PythonExtension.() -> Unit,
     ): Project {
@@ -52,7 +52,7 @@ class PythonPluginPythonOnlyTest {
     }
 
     private fun evaluated(
-        sdk: String? = "3.14.7",
+        sdk: String? = "3.15.0",
         pythonMultiplatformVersion: String? = null,
         configure: PythonExtension.() -> Unit,
     ): Project =
@@ -99,7 +99,7 @@ class PythonPluginPythonOnlyTest {
 
         val pack = project.pack("packagePythonAndroidArm64Debug")
         assertEquals(2, pack.embedLevel)
-        assertEquals("3.14.7", pack.interpreterVersion)
+        assertEquals("3.15.0", pack.interpreterVersion)
         pack.destinationDirectory.get().asFile.mkdirs()
         pack.actions.forEach { it.execute(pack) }
 
@@ -108,7 +108,7 @@ class PythonPluginPythonOnlyTest {
         assertTrue("python/app/main.py" in entries, "$entries")
         assertFalse(entries.any { it.startsWith("runtime/") || it == "runtime-manifest.json" }, "$entries")
         val record = File(buildDir, "distributions/app-androidArm64-debug.embed.json").readText()
-        assertTrue("\"interpreterVersion\": \"3.14.7\"" in record, record)
+        assertTrue("\"interpreterVersion\": \"3.15.0\"" in record, record)
         assertFalse("interpreterBundled" in record, record)
     }
 
@@ -123,15 +123,15 @@ class PythonPluginPythonOnlyTest {
 
     @Test
     fun `compileSdk still selects the wheels' python version at level 2`() {
-        val project = evaluated(sdk = "3.14") { androidArm64() }
+        val project = evaluated(sdk = "3.15") { androidArm64() }
 
         val install = assertIs<InstallTargetDependenciesTask>(project.tasks.getByName("installPythonDependenciesAndroidArm64"))
-        assertEquals("3.14", install.installArguments["python-version"])
+        assertEquals("3.15", install.installArguments["python-version"])
     }
 
     @Test
     fun `a disagreeing python multiplatform version property fails only the level 2 bundling tasks`() {
-        val project = evaluated(sdk = "3.14.7", pythonMultiplatformVersion = "3.13.0") {
+        val project = evaluated(sdk = "3.15.0", pythonMultiplatformVersion = "3.13.0") {
             packaging { embedLevel = 0 }
             androidArm64()
             macosArm64()
@@ -139,7 +139,7 @@ class PythonPluginPythonOnlyTest {
 
         val android = project.build("buildPythonAndroidArm64Debug")
         val rejection = assertNotNull(android.pythonVersionRejection)
-        assertTrue("3.14.7" in rejection && "3.13.0" in rejection, rejection)
+        assertTrue("3.15.0" in rejection && "3.13.0" in rejection, rejection)
         // macOS honours level 0: python-multiplatform embeds nothing there, so nothing to compare.
         assertNull(project.build("buildPythonMacosArm64Debug").pythonVersionRejection)
 
@@ -151,7 +151,7 @@ class PythonPluginPythonOnlyTest {
 
     @Test
     fun `an agreeing version, or none, leaves the bundling task alone`() {
-        val agreeing = evaluated(pythonMultiplatformVersion = "3.14.7") { androidArm64() }
+        val agreeing = evaluated(pythonMultiplatformVersion = "3.15.0") { androidArm64() }
         assertNull(agreeing.build("buildPythonAndroidArm64Debug").pythonVersionRejection)
 
         val unknown = evaluated { androidArm64() }
@@ -172,14 +172,14 @@ class PythonPluginPythonOnlyTest {
 
         configured(app) { androidArm64() }
         val rejection = assertNotNull(app.build("buildPythonAndroidArm64Debug").pythonVersionRejection)
-        assertTrue("3.14.7" in rejection && "3.13.0" in rejection, rejection)
+        assertTrue("3.15.0" in rejection && "3.13.0" in rejection, rejection)
     }
 
     @Test
     fun `the property overrides the python-multiplatform project's extension`() {
         val app = appBesidePythonMultiplatform("3.13.0")
 
-        configured(app, pythonMultiplatformVersion = "3.14.7") { androidArm64() }
+        configured(app, pythonMultiplatformVersion = "3.15.0") { androidArm64() }
         assertNull(app.build("buildPythonAndroidArm64Debug").pythonVersionRejection)
     }
 
