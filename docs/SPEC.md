@@ -592,6 +592,16 @@ decision.
 - The plugin's POM depends on packpack, so packpack must be on Maven Central before the plugin is
   published (pypackpack's SPEC, *Distribution through Maven Central*): the Plugin Portal resolves a plugin's
   dependencies from Maven Central.
+- The coordinates are written once, in `gradle.properties` (#99): `mavenGroup`, `toolchainVersion`, `pluginId`,
+  `packpackModule`, `packpackVersion`. A group unification (python-multiplatform #95) changes those lines only;
+  the plugin's implementation class is its Kotlin package and does not follow the id.
+- Releasing (#99): a GitHub Release tagged `v<version>` runs `.github/workflows/publish-gradle-plugin.yml` in the
+  `gradle-plugin-portal` environment (to be restricted to `v*` tags). It checks that the tag names
+  `toolchainVersion`, that `packpackVersion` is on Maven Central and that the version is not on the Portal yet;
+  stops naming a missing `GRADLE_PUBLISH_KEY` or `GRADLE_PUBLISH_SECRET` (`SIGNING_KEY` and
+  `SIGNING_KEY_PASSWORD` are optional: the Portal does not require signatures); stages and checks the plugin and
+  its marker; and runs `publishPlugins`. A manual run does all of it except the upload, building packpack from
+  pypackpack's develop when Central does not have it yet.
 
 ## 2. `tcl`: toolchain-lite
 

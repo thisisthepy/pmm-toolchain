@@ -1,0 +1,120 @@
+name: Publish the Gradle plugin
+
+# Publishing a GitHub Release tagged `v<version>` (the plugin's tags, #71) stages and checks the plugin
+# and its marker (.github/scripts/maven/check_central_bundle.py --plugin-id) and publishes them to the
+# Gradle Plugin Portal (`publishPlugins`). A manual run does everything except the upload (#99).
+#
+# Nothing can upload until the user has created the `gradle-plugin-portal` environment (restricted to
+# `v*` tags) with its secrets and published such a release; without a required secret the job stops
+# and names it. The plugin depends on packpack, which the Portal resolves from Maven Central, so the
+# job also stops while gradle.properties' packpackVersion is not on Central. docs/SPEC.md §1.19.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-gradle-plugin-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Releases tagged toolchain-lite-v* are tcl's (publish-pypi.yml).
+    if: github.event_name != 'release' || (startsWith(github.event.release.tag_name, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.event_name == 'release' && 'gradle-plugin-portal' || '' }}
+    env:
+      IS_RELEASE: ${{ github.event_name == 'release' }}
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag names the version; packpack is on Central; the version is new on the Portal
+        run: |
+          prop() { sed -n "s/^$1=//p" gradle.properties; }
+          group=$(prop mavenGroup); version=$(prop toolchainVersion); plugin=$(prop pluginId)
+          packpack=$(prop packpackModule); packpack_version=$(prop packpackVersion)
+          echo "plugin $plugin $version ($group:toolchain)   packpack $packpack:$packpack_version   tag: ${TAG:-none (dry run)}"
+          { echo "GROUP=$group"; echo "VERSION=$version"; echo "PLUGIN_ID=$plugin"; } >> "$GITHUB_ENV"
+          fail() { if [ "$IS_RELEASE" = true ]; then echo "::error::$1"; exit 1; else echo "::warning::$1"; fi; }
+          if [ "$IS_RELEASE" = true ] && [ "$TAG" != "v$version" ]; then
+            echo "::error::release tag '$TAG' is not 'v$version' (gradle.properties toolchainVersion)"; exit 1
+          fi
+          pp_group=${packpack%%:*}; pp_artifact=${packpack##*:}
+          curl -fsS -o /dev/null "https://repo1.maven.org/maven2/${pp_group//.//}/$pp_artifact/$packpack_version/$pp_artifact-$packpack_version.pom" \
+            || fail "$packpack:$packpack_version is not on Maven Central; publish packpack first (pypackpack publish-maven.yml)"
+          marker="https://plugins.gradle.org/m2/${plugin//.//}/$plugin.gradle.plugin/$version/$plugin.gradle.plugin-$version.pom"
+          if curl -fsS -o /dev/null "$marker"; then fail "$plugin $version is already on the Plugin Portal; bump toolchainVersion"; fi
+
+      - name: The publishing secrets are there
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          missing=""
+          for name in GRADLE_PUBLISH_KEY GRADLE_PUBLISH_SECRET; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            if [ "$IS_RELEASE" = true ]; then
+              echo "::error::missing secrets in the gradle-plugin-portal environment:$missing (docs/SPEC.md §1.19)"; exit 1
+            fi
+            echo "::notice::dry run without:$missing; nothing is uploaded"
+          fi
+          # The Portal does not require signatures; with SIGNING_KEY (and SIGNING_KEY_PASSWORD) they are added.
+          [ -n "$SIGNING_KEY" ] || echo "::notice::no SIGNING_KEY: the plugin is published unsigned"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The plugin builds against packpack; until packpack is on Maven Central (a dry run before its
+      # first release), build it from pypackpack's develop into mavenLocal, as test.yml does.
+      - name: packpack, from pypackpack, when Central does not have it yet
+        if: github.event_name != 'release'
+        run: |
+          prop() { sed -n "s/^$1=//p" gradle.properties; }
+          packpack=$(prop packpackModule); v=$(prop packpackVersion); g=${packpack%%:*}; a=${packpack##*:}
+          if ! curl -fsS -o /dev/null "https://repo1.maven.org/maven2/${g//.//}/$a/$v/$a-$v.pom"; then
+            git clone --depth 1 --branch develop https://github.com/thisisthepy/pypackpack.git "$RUNNER_TEMP/pypackpack"
+            (cd "$RUNNER_TEMP/pypackpack" && ./gradlew :packpack:publishToMavenLocal --console=plain)
+          fi
+
+      - name: Stage the plugin and its marker (signed when a key is there)
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ORG_GRADLE_PROJECT_signingInMemoryKey" ]; then
+            unset ORG_GRADLE_PROJECT_signingInMemoryKey ORG_GRADLE_PROJECT_signingInMemoryKeyPassword
+          fi
+          ./gradlew :toolchain:publishAllPublicationsToStagingRepository --console=plain
+
+      - name: The plugin and its marker meet the requirements
+        env:
+          SIGNED: ${{ secrets.SIGNING_KEY != '' }}
+        run: |
+          flag=""
+          [ "$SIGNED" = true ] || flag="--unsigned"
+          python3 .github/scripts/maven/check_central_bundle.py toolchain/build/staging-deploy "$GROUP" toolchain "$VERSION" --plugin-id "$PLUGIN_ID" $flag
+
+      - name: Publish to the Gradle Plugin Portal
+        if: github.event_name == 'release'
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ORG_GRADLE_PROJECT_signingInMemoryKey" ]; then
+            unset ORG_GRADLE_PROJECT_signingInMemoryKey ORG_GRADLE_PROJECT_signingInMemoryKeyPassword
+          fi
+          ./gradlew :toolchain:publishPlugins --console=plain

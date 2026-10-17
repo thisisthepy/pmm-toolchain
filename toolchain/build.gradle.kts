@@ -14,6 +14,9 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
+// packpack's coordinate, from gradle.properties (#99).
+val packpack = "${providers.gradleProperty("packpackModule").get()}:${providers.gradleProperty("packpackVersion").get()}"
+
 dependencies {
     //implementation(gradleApi())
     //implementation(localGroovy())
@@ -48,7 +51,7 @@ dependencies {
     // resolved through `mavenLocal()` (declared in the root `settings.gradle.kts`
     // `pluginManagement`/`dependencyResolutionManagement` repositories), which requires
     // `pypackpack`'s `packpack/build.gradle.kts` to have run `publishToMavenLocal` at least once.
-    implementation("org.thisisthepy.python.multiplatform:packpack:0.1.0")
+    implementation(packpack)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.test.junit)
@@ -65,8 +68,9 @@ gradlePlugin {
     vcsUrl.set("https://github.com/thisisthepy/toolchain")
     plugins {
         create("toolchain") {
-            id = group as String
-            implementationClass = "$id.toolchain.PythonPlugin"
+            // The id comes from gradle.properties (#99); the class is a Kotlin package, not a coordinate.
+            id = providers.gradleProperty("pluginId").get()
+            implementationClass = "org.thisisthepy.python.multiplatform.toolchain.PythonPlugin"
             displayName = "thisisthepy toolchain"
             description =
                 "Python in Kotlin Multiplatform apps: dependencies per target, bundling and staging of the " +
@@ -188,7 +192,7 @@ dependencies {
     // A thin CLI over pypackpack's dependency backend: the same packpack artifact `main` resolves
     // from mavenLocal (see this module's dependencies above).
     "cliMainImplementation"(libs.kotlinx.coroutines.core)
-    "cliMainImplementation"("org.thisisthepy.python.multiplatform:packpack:0.1.0")
+    "cliMainImplementation"(packpack)
     "cliTestImplementation"(libs.kotlin.test)
     "cliTestImplementation"(libs.kotlin.test.junit)
 }
