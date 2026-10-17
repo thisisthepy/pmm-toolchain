@@ -6,6 +6,10 @@ plugins {
     `kotlin-dsl`
     `maven-publish`
     `java-gradle-plugin`
+    signing
+    // The Gradle Plugin Portal's publishing (`publishPlugins`); it also adds the sources and javadoc
+    // jars the portal and Maven Central require (toolchain#97). Nothing runs it here.
+    id("com.gradle.plugin-publish") version "1.3.1"
     // The native `tcl` (toolchain-lite) that the PyPI wheels carry; see the cli source sets below.
     id("org.graalvm.buildtools.native") version "0.10.6"
 }
@@ -57,10 +61,17 @@ dependencies {
 }
 
 gradlePlugin {
+    website.set("https://thisisthepy.github.io/toolchain/")
+    vcsUrl.set("https://github.com/thisisthepy/toolchain")
     plugins {
         create("toolchain") {
             id = group as String
             implementationClass = "$id.toolchain.PythonPlugin"
+            displayName = "thisisthepy toolchain"
+            description =
+                "Python in Kotlin Multiplatform apps: dependencies per target, bundling and staging of the " +
+                    "app's Python, through pypackpack."
+            tags.set(listOf("python", "kotlin-multiplatform", "android", "ios", "packaging"))
         }
     }
 }
@@ -99,9 +110,54 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 // plugin id (resolved via the marker) and get the jar through `pluginMaven` -- so it was pure
 // duplication, not an intentional second artifact. Removed rather than re-coordinated: there was
 // no second artifact to keep.
+// Maven Central and the Plugin Portal read the same POM fields (toolchain#97); both publications, the
+// plugin's jar (`pluginMaven`) and its marker, carry them.
 publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set("thisisthepy toolchain")
+            description.set("The Gradle plugin that puts an app's Python into Kotlin Multiplatform builds, through pypackpack.")
+            url.set("https://github.com/thisisthepy/toolchain")
+            licenses {
+                license {
+                    name.set("Apache-2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
+            developers {
+                developer {
+                    id.set("thisisthepy")
+                    name.set("thisisthepy")
+                    url.set("https://github.com/thisisthepy")
+                }
+            }
+            scm {
+                url.set("https://github.com/thisisthepy/toolchain")
+                connection.set("scm:git:https://github.com/thisisthepy/toolchain.git")
+                developerConnection.set("scm:git:ssh://git@github.com/thisisthepy/toolchain.git")
+            }
+        }
+    }
     repositories {
         mavenLocal()
+        // A rehearsal of a release: `publishAllPublicationsToStagingRepository` writes build/staging-deploy,
+        // which `.github/scripts/maven/check_central_bundle.py --plugin-id ...` checks. Nothing uploads.
+        maven {
+            name = "staging"
+            url = uri(layout.buildDirectory.dir("staging-deploy"))
+        }
+    }
+}
+
+// Signs only when a key is given (`-PsigningInMemoryKey`, `-PsigningInMemoryKeyPassword`, or the
+// ORG_GRADLE_PROJECT_ environment variables of the same names), as pypackpack does.
+signing {
+    val key = providers.gradleProperty("signingInMemoryKey").orNull
+    // plugin-publish signs every publication once `signing` is applied; without a key, skip instead of failing.
+    isRequired = key != null
+    if (key != null) {
+        useInMemoryPgpKeys(key, providers.gradleProperty("signingInMemoryKeyPassword").orNull)
+        sign(publishing.publications)
     }
 }
 

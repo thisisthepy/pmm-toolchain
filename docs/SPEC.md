@@ -26,8 +26,9 @@ Paths below are abbreviated: `plugin/` = `toolchain/src/main/kotlin/org/thisisth
 Plugin id `org.thisisthepy.python.multiplatform`, implementation class `PythonPlugin`
 (`toolchain/build.gradle.kts` `gradlePlugin { }`). Applying it creates the `python` extension
 (`PythonExtension`) and registers the tasks of §1.10–§1.15 and §1.18, all in group `python`.
-Consumers resolve it from `mavenLocal()` after `./gradlew :toolchain:publishToMavenLocal`; the plugin
-itself depends on `org.thisisthepy.python.multiplatform:packpack:0.1.0` from `mavenLocal()`.
+Consumers resolve it from `mavenLocal()` after `./gradlew :toolchain:publishToMavenLocal` until it is
+published (§1.19). The plugin depends on `org.thisisthepy.python.multiplatform:packpack:0.1.0`, which this
+build looks for on Maven Central first and then in `mavenLocal()`, limited to the `org.thisisthepy` groups.
 
 **Status: implemented**. `plugin/PythonPlugin.kt`; `ptest/PythonPluginApplyTest.kt` applies the
 plugin id to a ProjectBuilder project and checks the extension, every task name and type
@@ -570,6 +571,27 @@ that was verified by building usage-example's `buildPython`.
 with a warning.*
 → *Platform overlays (`src/<family>`) are checked as files but only `src/main` is an import root:
 **partial**.*
+
+### 1.19 Publishing the plugin
+Source: toolchain#97. **Status: partial**: prepared and rehearsed; nothing is uploaded, which is the user's
+decision.
+
+- The plugin is `org.thisisthepy.python.multiplatform:toolchain:<version>` with its marker
+  `org.thisisthepy.python.multiplatform:org.thisisthepy.python.multiplatform.gradle.plugin:<version>`
+  (`java-gradle-plugin`). `com.gradle.plugin-publish` 1.3.1 adds the sources and javadoc jars and the
+  `publishPlugins` task for the Gradle Plugin Portal; `gradlePlugin { }` carries the website, VCS URL,
+  display name, description and tags. Both POMs carry url, Apache-2.0, developer and SCM (Maven Central's
+  requirements too).
+- Signing uses an in-memory PGP key from `-PsigningInMemoryKey` / `-PsigningInMemoryKeyPassword` (or the
+  `ORG_GRADLE_PROJECT_` environment variables); without one nothing is signed and nothing fails.
+- `./gradlew :toolchain:publishAllPublicationsToStagingRepository` writes `toolchain/build/staging-deploy`;
+  `.github/scripts/maven/check_central_bundle.py <dir> org.thisisthepy.python.multiplatform toolchain <version>
+  --plugin-id org.thisisthepy.python.multiplatform` checks it. It failed on the earlier publication (24
+  problems: no sources or javadoc jar, no POM metadata on either POM) and passes on a signed rehearsal
+  (2026-10-17, a throwaway key; `gpg --verify` good).
+- The plugin's POM depends on packpack, so packpack must be on Maven Central before the plugin is
+  published (pypackpack's SPEC, *Distribution through Maven Central*): the Plugin Portal resolves a plugin's
+  dependencies from Maven Central.
 
 ## 2. `tcl`: toolchain-lite
 
