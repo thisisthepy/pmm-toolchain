@@ -141,7 +141,7 @@ An honest summary: the full contract, item by item, is on the guide's
 | `bytecode` compile level (`.pyc`; needs a `.venv` matching `compileSdk`) | ✅ implemented |
 | `native` / `mixed` compile levels | ⏳ planned: rejected loudly today |
 | Staging into the desktop jar and the APK | 🟡 partial: iOS is staged but not attached |
-| Hot reload | 🟡 partial: Android only, over `adb` |
+| Hot reload | ⏳ planned: not working yet on any platform (#103); a live connection to the running app replaces it |
 | Code push | 🟡 partial: validation only, no upload |
 | `buildFeatures { metaclass, compose }` | ✅ implemented: compose locations come from two Gradle properties |
 | `embedLevel`, `projectFlavors`, `pip { }` | ⏳ planned |

@@ -2,7 +2,12 @@ package org.thisisthepy.python.multiplatform.toolchain
 
 import org.thisisthepy.python.multiplatform.toolchain.dsl.HotReloadExtension
 import org.thisisthepy.python.multiplatform.toolchain.dsl.PackagingExtension
+import org.thisisthepy.python.multiplatform.toolchain.hotreload.HotReloadPushTask
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.validateHotReloadConfig
+import org.gradle.api.GradleException
+import org.gradle.testfixtures.ProjectBuilder
+import kotlin.io.path.createTempDirectory
+import kotlin.test.assertTrue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -24,6 +29,39 @@ import kotlin.test.assertFailsWith
  *    runtime job), or act on serverHost until a server component exists.
  */
 class PythonPluginHotReloadTest {
+
+    private fun hotReloadTask(enabled: Boolean): HotReloadPushTask {
+        val project = ProjectBuilder.builder().build()
+        val sources = createTempDirectory("hot-reload-src").toFile().apply { resolve("app.py").writeText("X = 1\n") }
+        return project.tasks.register("hotReloadPython", HotReloadPushTask::class.java) {
+            hotReloadEnabled = enabled
+            sourceRoot = sources
+            remoteBasePath = "/data/local/tmp/app/python"
+            // A path that cannot run: if the task tried `adb`, it would fail with an IOException instead.
+            adbPath = "/nonexistent/adb-must-not-run"
+        }.get()
+    }
+
+    /**
+     * toolchain#103: nothing in python-multiplatform receives the RELOAD_PYTHON broadcast, so pushing files
+     * would look like a working hot reload while the app never changes. Until the live-connection channel
+     * replaces it (docs/design/live-connection.md, M2), an enabled task fails saying so, and runs no adb.
+     */
+    @Test
+    fun `an enabled hot reload fails saying it does not work yet, without running adb`() {
+        val task = hotReloadTask(enabled = true)
+
+        val error = assertFailsWith<GradleException> { task.actions.forEach { it.execute(task) } }
+
+        val message = error.message.orEmpty()
+        assertTrue("does not work yet" in message && "RELOAD_PYTHON" in message && "#103" in message, message)
+    }
+
+    @Test
+    fun `a disabled hot reload still only prints its guide`() {
+        val task = hotReloadTask(enabled = false)
+        task.actions.forEach { it.execute(task) }
+    }
 
     @Test
     fun `disabled hotReload passes validation with empty serverHost`() {

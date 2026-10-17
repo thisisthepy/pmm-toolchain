@@ -423,16 +423,19 @@ Hand-off to the platform's packaging step:
 ### 1.14 Hot reload: `hotReloadPython`
 `packaging { hotReload { serverHost; redirectErrorStream; cert { keyStore | autoGenerate } } }` is
 validated when any build type sets `enableHotReload = true`: `serverHost` must be non-blank, and
-`keyStore` and `autoGenerate` are mutually exclusive. The task collects every `.py` under
-`localLibraryPath`, runs `adb push` for each to `/data/local/tmp/<fileName>/python/…`, then
-`adb shell am broadcast -a org.thisisthepy.python.RELOAD_PYTHON`.
+`keyStore` and `autoGenerate` are mutually exclusive.
 
-**Status: partial**. `plugin/hotreload/`; `ptest/PythonPluginHotReloadTest.kt`,
-`ptest/hotreload/WatchAndPushTest.kt` test the validation and the command list; the task action
-itself is untested. `serverHost` and `cert` are validated but not used for transport (adb only);
-the source root ignores `commonMain.srcDirs`; Android only (a desktop copy helper,
-`executeLocalCopy`, exists and is tested but no task calls it).
-→ *A hot-reload server reachable at `serverHost`, and a "run" entry point for it: **planned**.*
+**Hot reload does not work yet (toolchain#103).** With hot reload enabled, `hotReloadPython` fails, saying
+so and why: it used to `adb push` every `.py` to `/data/local/tmp/<fileName>/python/…` and send
+`adb shell am broadcast -a org.thisisthepy.python.RELOAD_PYTHON`, but python-multiplatform has no receiver
+for that broadcast, so the push looked like a working hot reload while the app never changed. Disabled, the
+task prints how to enable it. `ptest/PythonPluginHotReloadTest.kt` (the validation; the enabled task fails
+naming the reason and runs no `adb`; the disabled task only prints its guide).
+
+**Status: planned**: a live connection to the running app on desktop, Android and iOS replaces it
+(`docs/design/live-connection.md`: M1 desktop, M2 Android, where this task moves onto the channel).
+`plugin/hotreload/WatchAndPush.kt`'s `adb` command builder and desktop copy helper are tested but unused;
+they go with M2.
 
 ### 1.15 Code push: `codePushPython`
 `packaging { codePush { serverHost; cert; uploadConfig { forceUpload; login { id; password } } } }`
