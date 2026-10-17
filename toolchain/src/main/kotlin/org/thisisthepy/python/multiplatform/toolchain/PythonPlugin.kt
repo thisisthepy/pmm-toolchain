@@ -12,6 +12,7 @@ import org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python.Ins
 import org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python.resolvePipSettings
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -21,6 +22,10 @@ import org.thisisthepy.python.multiplatform.toolchain.bundle.AssemblePythonPacka
 import org.thisisthepy.python.multiplatform.toolchain.bundle.BuildPythonArtifactTask
 import org.thisisthepy.python.multiplatform.toolchain.bundle.PythonStagingPlatform
 import org.thisisthepy.python.multiplatform.toolchain.bundle.StagePythonBundleTask
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DEV_AGENT_CONNECTION_DIRECTORY
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DEV_AGENT_LAUNCH_ACTION
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DevAgentLaunchAction
+import org.thisisthepy.python.multiplatform.toolchain.devagent.devAgentEnabled
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.CodePushPendingTask
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.HotReloadPushTask
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.validateCodePushConfig
@@ -436,6 +441,7 @@ class PythonPlugin : Plugin<Project> {
             val activeBuildTypeName = resolveActiveBuildType(extension.buildTypes, requestedBuildType)
             val activeFlavorName = resolveActiveFlavor(extension.projectFlavors, project.findProperty("python.flavor") as? String)
             buildTask.configure { flavorRejection = flavorsWithoutVariantsRejection(extension.projectFlavors, variants) }
+            configureDevAgent(project, stageTasks, devAgentEnabled(extension.buildTypes, activeBuildTypeName))
 
             if (variants.isEmpty()) {
                 // No declared platform variant: exactly the pre-graph behavior, unchanged. One host
@@ -742,6 +748,31 @@ private fun registerAndroidAssetSourceDirectory(project: Project, directory: Fil
             "could not add '$directory' to android.sourceSets.main.assets " +
                 "(${error.message}); the staged Python payload will not reach the APK.",
         )
+    }
+}
+
+/**
+ * toolchain#105: a build whose active Python build type enables hot reload stages the dev-agent marker into
+ * every destination, and its desktop run tasks start an agent ([DevAgentLaunchAction]). Compose's `run` and
+ * the Kotlin JVM target's `<target>Run` are the run tasks; a packaged distribution is launched by the OS, not
+ * by Gradle, so it gets the marker (it was built from this build type) but no variable from here.
+ */
+private fun configureDevAgent(
+    project: Project,
+    stageTasks: Map<PythonStagingPlatform, TaskProvider<StagePythonBundleTask>>,
+    enabled: Boolean,
+) {
+    stageTasks.values.forEach { it.configure { devAgentMarker = enabled } }
+    if (!enabled) return
+    val runTaskNames = mutableSetOf("run")
+    project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
+        project.extensions.findByType(KotlinMultiplatformExtension::class.java)?.targets
+            ?.matching { it.platformType == KotlinPlatformType.jvm }
+            ?.all { runTaskNames += "${name}Run" }
+    }
+    val connectionDir = File(project.layout.buildDirectory.get().asFile, DEV_AGENT_CONNECTION_DIRECTORY)
+    project.tasks.withType(JavaExec::class.java).matching { it.name in runTaskNames }.configureEach {
+        doFirst(DEV_AGENT_LAUNCH_ACTION, DevAgentLaunchAction(File(connectionDir, "$name.json")))
     }
 }
 

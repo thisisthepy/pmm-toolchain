@@ -1,6 +1,7 @@
 package org.thisisthepy.python.multiplatform.toolchain.bundle
 
 import org.thisisthepy.python.multiplatform.toolchain.deleteWithoutFollowingLinks
+import org.thisisthepy.python.multiplatform.toolchain.devagent.DEV_AGENT_ENABLE_MARKER
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.Input
@@ -92,6 +93,13 @@ open class StagePythonBundleTask : DefaultTask() {
     @get:Input
     var payloadPath: String = PythonStagingLayout.PAYLOAD_ROOT
 
+    /**
+     * Whether the payload carries python-multiplatform's dev-agent marker ([DEV_AGENT_ENABLE_MARKER]): true for
+     * a build type with `enableHotReload` (toolchain#105). An `@Input`, so switching build types re-stages.
+     */
+    @get:Input
+    var devAgentMarker: Boolean = false
+
     /** Only for the log line, so it says which variant landed where. */
     @get:Internal
     var variantName: String? = null
@@ -103,11 +111,12 @@ open class StagePythonBundleTask : DefaultTask() {
     @TaskAction
     fun stage() {
         val source = resolvedBundleDir()
-        val result = stagePythonPayload(source, destinationDir, payloadPath)
+        val result = stagePythonPayload(source, destinationDir, payloadPath, devAgentMarker)
         logger.lifecycle(
             "Staged ${result.fileCount} Python file(s)" +
                 (variantName?.let { " for $it" } ?: "") +
-                " from $source into ${result.payloadDir}",
+                " from $source into ${result.payloadDir}" +
+                (if (devAgentMarker) ", with the dev-agent marker" else ""),
         )
     }
 }
@@ -141,17 +150,23 @@ data class PythonStagingResult(
  *   this is the normal state of a consumer that has not pointed the DSL at a ppp package yet. The
  *   destination is still created, because by then it is already registered as somebody's resource
  *   or asset source root.
+ * - **[devAgentMarker] writes [DEV_AGENT_ENABLE_MARKER] at the payload root** (toolchain#105), the switch
+ *   python-multiplatform's runtime requires before it starts a dev agent. It is not counted in
+ *   [PythonStagingResult.fileCount]. The clean sync above is what removes it from a later staging without it.
  */
 fun stagePythonPayload(
     bundleDir: File,
     destinationRoot: File,
     payloadPath: String = PythonStagingLayout.PAYLOAD_ROOT,
+    devAgentMarker: Boolean = false,
 ): PythonStagingResult {
     val payloadDir = File(destinationRoot, payloadPath)
     payloadDir.deleteWithoutFollowingLinks()
     if (!payloadDir.mkdirs() && !payloadDir.isDirectory) {
         throw java.io.IOException("could not create $payloadDir to stage the Python payload into")
     }
+
+    if (devAgentMarker) File(payloadDir, DEV_AGENT_ENABLE_MARKER).writeText("")
 
     val source = File(bundleDir, PythonStagingLayout.PAYLOAD_ROOT)
     if (!source.isDirectory) return PythonStagingResult(payloadDir, 0)
