@@ -576,10 +576,13 @@ tcl --help
   and every wheel to pass `smoke_wheel.py` in a fresh venv (`tcl --help`, `tcl --version`,
   `python -m toolchain_lite --version`, and `tcl install six` writing a `pyproject.toml`).
   Pull requests that touch these files run everything but the upload.
-- PyPI's 0.0.1 (2025-06-12) packed the old `toolchain/` Gradle directory and installs no `tcl`.
+- PyPI's 0.0.1 (2025-06-12) packed the old `toolchain/` Gradle directory and installs no `tcl`. It is not
+  yanked yet; yanking it is the maintainer's step on PyPI.
 
-**Status: partial**. Built and smoke-tested by CI on every pull request that touches it; nothing
-uploaded yet.
+**Status: implemented**. 0.1.0 is on PyPI (uploaded 2026-10-03 from the `toolchain-lite-v0.1.0` release):
+the four wheels above, each smoke-tested before upload. `uvx --from toolchain-lite==0.1.0 tcl --version`
+prints `tcl 0.1.0` (checked 2026-10-17, macOS arm64). Pull requests that touch these files still build
+and smoke-test the wheels without uploading.
 
 ---
 
