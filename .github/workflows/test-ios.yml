@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: ios-e2e-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   ios-e2e:
