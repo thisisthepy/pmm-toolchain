@@ -501,22 +501,37 @@ bundled. Every `buildPython<Variant><BuildType>` and the single host `buildPytho
   by `typedpythonCheckedDirs`). `.py` and `.pyi` files there are `@InputFiles` with `@PathSensitive(RELATIVE)`: a changed
   `.py` re-runs the check, a change to any other file leaves it `UP-TO-DATE`. No package directory,
   or no `.py` file in it: the check is skipped with a log line and the gate is not installed.
-- **Gate.** The `typedpython` wheel and the `pyrefly` it pins, both at pinned versions (`@Input`,
-  defaults `0.1.0` and `1.3.2`), installed into `build/typedpython/venv`: never the project's `.venv`.
-  The venv is created through `pypackpack`'s UV backend (`createVirtualEnvironment`, `--no-project
-  --clear`, Python `>=3.13`; only when the venv does not exist). The install is
-  `uv pip install --python <venv> --no-index --find-links <dir> typedpython==<v> pyrefly==<v>`
-  (skipped when the same request is already installed): **both packages come from `<dir>` and
-  nothing is ever fetched from an index**: `typedpython` is unclaimed on PyPI, so a bare-name install
-  would run whatever someone publishes under that name on every consumer's build. `<dir>` is the
-  project property `typedpython.wheelDir` and must hold the `typedpython` wheel and the `pyrefly` wheel
-  for the platform. An install failure fails the task and names that requirement. The install calls
-  `uv` directly: `pypackpack`'s backend has no operation that installs named requirements into an
-  existing venv from a local wheel directory (`installDependenciesToTarget` reads `-r pyproject.toml`
-  into `--target`; `addDependencies` edits `pyproject.toml`): a `pypackpack` change, not made here.
-- **No wheel directory.** The check is **skipped with a loud warning** (what was skipped, that the
-  gate is not on PyPI yet, and `-Ptypedpython.wheelDir=<dir>` to turn it on); nothing is created or
-  installed. With a wheel directory a failed check fails the build.
+- **Gate.** The `typedpython` wheel and the `pyrefly` it pins, installed into `build/typedpython/venv`:
+  never the project's `.venv`. The venv is created through `pypackpack`'s UV backend
+  (`createVirtualEnvironment`, `--no-project --clear`, Python `>=3.13`; only when the venv does not exist).
+  The install calls `uv` directly: `pypackpack`'s backend has no operation that installs named
+  requirements into an existing venv (`installDependenciesToTarget` reads `-r pyproject.toml` into
+  `--target`; `addDependencies` edits `pyproject.toml`): a `pypackpack` change, not made here.
+- **Index rule.** A package whose name is **unclaimed on PyPI** is never installed from an index:
+  `typedpython` is unclaimed, so a bare-name install would run whatever someone publishes under that
+  name on every consumer's build. A **hash-pinned** install from PyPI is allowed: `pyrefly` comes from
+  PyPI only when it matches a pinned SHA-256 (`--require-hashes`). (Decision for python-multiplatform
+  #20, 2026-10-17; #90.)
+- **Where the gate comes from**, first match wins:
+  1. `-Ptypedpython.wheelDir=<dir>`, the override: `uv pip install --python <venv> --no-index
+     --find-links <dir> typedpython==<v> pyrefly==<v>` (`@Input` versions, defaults `0.1.0` and `1.3.2`).
+     `<dir>` must hold both wheels for the platform; nothing comes from an index.
+  2. The **gate artifact**, by default: the `typedpython-gate` zip python-multiplatform-ksp publishes beside
+     its processor jar, `io.github.thisisthepy:python-multiplatform-ksp:3.13.0:typedpython-gate@zip`
+     (`DEFAULT_TYPEDPYTHON_GATE`, the one place its group and version are written; `-Ptypedpython.gate=
+     <group:artifact:version>` overrides it). It is resolved leniently from the project's own
+     repositories (python-multiplatform's `publishToMavenLocal` puts it in `mavenLocal()`), unzipped into
+     `build/typedpython/gate`, and its manifest `typedpython-gate.json` (format 1) gives typedpython's
+     wheel, version and SHA-256 and the SHA-256 of every pyrefly PyPI wheel. The install is `uv pip
+     install --python <venv> --require-hashes -r build/typedpython/gate-requirements.txt`, where
+     typedpython is a direct `file:` reference to the unzipped wheel with its hash (never looked up on an
+     index) and `pyrefly==<v>` carries every manifest hash. A host with no pyrefly wheel in the manifest
+     fails, naming the platform; a pyrefly that matches no hash fails the task.
+  3. Neither: the check is **skipped with a loud warning** (what was skipped, that the gate artifact is
+     not in the project's repositories, and both ways to provide it); nothing is created or installed.
+
+  Either install is skipped when the same request is already installed. An install failure fails the
+  task. With a gate, a failed check fails the build.
 - **Run.** `<venv>/bin/typedpython check --mode <mode> [--search-path <dir>]... <file>...`, with
   explicit files (the 0.1.0 gate crashes on a directory argument). `mode` is an `@Input`, default
   `checked`; any value other than `checked`/`compiled` fails the task.
@@ -538,7 +553,12 @@ fix passes; per-variant `buildPython*` depend on the check; only a `.py` change 
 `typedpythonStubs` directory resolves an import that fails without it; the no-stubs line appears
 once; the package's modules import one another; a `pyrefly` pin absent from the wheel directory fails
 instead of being fetched; `metaDirs`/`libDirs` are not checked),
-`ptest/typedpython/TypedpythonNoWheelTest.kt` (no wheel directory: skipped with the warning),
+`ptest/typedpython/TypedpythonNoWheelTest.kt` (no gate: skipped with the warning),
+`ptest/typedpython/TypedpythonGateTest.kt` (coordinates, manifest, hash-pinned requirements, pyrefly's
+wheel for the host), `ptest/typedpython/TypedpythonGateArtifactTest.kt` (TestKit with the real gate zip
+from `~/.m2`: installed and run without a wheel directory; a missing artifact is a skip; a tampered
+pyrefly hash fails the task. Skipped without the zip, as on CI unless python-multiplatform-ksp was
+published to `mavenLocal`),
 `ptest/typedpython/TypedpythonDecisionsTest.kt` (source selection, import root, `--no-index`
 commands, skip warning, mode, exit-code interpretation). The TestKit tests in
 `TypedpythonCheckTaskTest` need `-Ptypedpython.wheelDir=<dir>` (holding the `typedpython` and
@@ -546,7 +566,8 @@ commands, skip warning, mode, exit-code interpretation). The TestKit tests in
 Not covered by a test here: exit 2 end to end (only `interpretTypedpythonResult`), and the install
 in a *consumer's* classpath: `withPluginClasspath()` bypasses the Kotlin DSL's `kotlin-stdlib` pin;
 that was verified by building usage-example's `buildPython`.
-→ *Until `typedpython` is on PyPI, a build without `-Ptypedpython.wheelDir` skips the check with a warning.*
+→ *A build whose repositories lack the gate artifact (and without `-Ptypedpython.wheelDir`) skips the check
+with a warning.*
 → *Platform overlays (`src/<family>`) are checked as files but only `src/main` is an import root:
 **partial**.*
 

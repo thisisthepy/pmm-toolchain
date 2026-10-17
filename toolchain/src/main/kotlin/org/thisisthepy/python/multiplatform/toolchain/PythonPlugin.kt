@@ -27,10 +27,13 @@ import org.thisisthepy.python.multiplatform.toolchain.hotreload.validateCodePush
 import org.thisisthepy.python.multiplatform.toolchain.hotreload.validateHotReloadConfig
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_PYREFLY_VERSION
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_TYPEDPYTHON_MODE
+import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_TYPEDPYTHON_GATE
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.DEFAULT_TYPEDPYTHON_VERSION
+import org.thisisthepy.python.multiplatform.toolchain.typedpython.TYPEDPYTHON_GATE_PROPERTY
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.TYPEDPYTHON_WHEEL_DIR_PROPERTY
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.TypedpythonCheckTask
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.typedpythonCheckedDirs
+import org.thisisthepy.python.multiplatform.toolchain.typedpython.typedpythonGateNotation
 import org.thisisthepy.python.multiplatform.toolchain.typedpython.typedpythonSourceExcluded
 import java.io.File
 
@@ -95,6 +98,23 @@ class PythonPlugin : Plugin<Project> {
                 project.providers.gradleProperty(TYPEDPYTHON_WHEEL_DIR_PROPERTY).map { project.file(it).absolutePath },
             )
             stubDirs.from(typedpythonStubs)
+            // The gate zip (#90), resolved leniently: a project whose repositories lack it gets the
+            // skip warning, not a failed configuration. -Ptypedpython.wheelDir wins over it.
+            val gate = project.providers.gradleProperty(TYPEDPYTHON_GATE_PROPERTY).orElse(DEFAULT_TYPEDPYTHON_GATE)
+            gateCoordinates.set(gate)
+            gateArchive.from(
+                project.provider {
+                    if (project.providers.gradleProperty(TYPEDPYTHON_WHEEL_DIR_PROPERTY).isPresent) {
+                        project.files()
+                    } else {
+                        project.configurations
+                            .detachedConfiguration(project.dependencies.create(typedpythonGateNotation(gate.get())))
+                            .apply { isTransitive = false }
+                            .incoming.artifactView { isLenient = true }.files
+                    }
+                },
+            )
+            gateDir.set(project.layout.buildDirectory.dir("typedpython/gate"))
             venvDir.set(project.layout.buildDirectory.dir("typedpython/venv"))
             report.set(project.layout.buildDirectory.file("typedpython/report.txt"))
         }
