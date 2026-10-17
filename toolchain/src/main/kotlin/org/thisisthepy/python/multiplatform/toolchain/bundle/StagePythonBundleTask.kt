@@ -1,5 +1,6 @@
 package org.thisisthepy.python.multiplatform.toolchain.bundle
 
+import org.thisisthepy.python.multiplatform.toolchain.deleteWithoutFollowingLinks
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.Input
@@ -147,7 +148,7 @@ fun stagePythonPayload(
     payloadPath: String = PythonStagingLayout.PAYLOAD_ROOT,
 ): PythonStagingResult {
     val payloadDir = File(destinationRoot, payloadPath)
-    payloadDir.deleteRecursively()
+    payloadDir.deleteWithoutFollowingLinks()
     if (!payloadDir.mkdirs() && !payloadDir.isDirectory) {
         throw java.io.IOException("could not create $payloadDir to stage the Python payload into")
     }

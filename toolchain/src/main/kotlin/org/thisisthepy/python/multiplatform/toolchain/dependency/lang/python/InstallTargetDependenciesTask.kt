@@ -1,5 +1,6 @@
 package org.thisisthepy.python.multiplatform.toolchain.dependency.lang.python
 
+import org.thisisthepy.python.multiplatform.toolchain.deleteWithoutFollowingLinks
 import kotlinx.coroutines.runBlocking
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -107,7 +108,7 @@ fun installDependenciesForTarget(
         requirementsDir.canonicalFile != installDir.canonicalFile) {
         "the requirements directory $requirementsDir must not be inside the install directory $installDir"
     }
-    if (installDir.exists() && !installDir.deleteRecursively()) {
+    if (installDir.exists() && !installDir.deleteWithoutFollowingLinks()) {
         throw GradleException("could not clear $installDir before installing Python dependencies into it")
     }
     installDir.mkdirs()
