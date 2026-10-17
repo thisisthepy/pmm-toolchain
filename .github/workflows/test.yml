@@ -9,10 +9,11 @@ name: Test
 # usage-example/ is its own build (toolchain#22, #62; python-multiplatform's Kotlin), run by the
 # consumer and e2e jobs with this repository's wrapper (../gradlew from usage-example/ = ./gradlew -p usage-example).
 on:
-  pull_request:
+  # Checked on develop after merging, not on every pull request (user decision,
+  # 2026-10-17). A red develop is fixed forward by its own pull request.
   push:
     branches: [develop]
-
+  workflow_dispatch:
 permissions:
   contents: read
 
